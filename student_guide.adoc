@@ -1,0 +1,31 @@
+= Cloud Native Architecture Patterns with Spring Cloud and Cloud Foundry
+
+Hands-on Lab Student Guide
+
+== Instructor Details
+
+Dieter Flick +
+Pivotal CF Platform Architect +
+Pivotal +
+dflick@pivotal.io
+
+== Prerequsities
+
+include::prerequisites.adoc[]
+
+== Setup your cf cli
+
+* cf login -a api.SYSTEM-DOMAIN
+
+== Access Apps Manager with your Browser
+
+* https://apps.SYSTEM-DOMAIN
+
+== Course Materials
+
+* link:lab_01.html[Lab 1 - Getting Started with Spring Boot]
+* link:lab_02.html[Lab 2 - Introspection, Monitoring, and Metrics using Spring Boot Actuator]
+* link:lab_03.html[Lab 3 - Composing Cloud Native Architectures with Spring Cloud]
+* link:lab_04.html[Lab 4 - Operating Cloud Native Architectures with Spring Cloud]
+* link:lab_05.html[Lab 5 - Deploying Cloud Native Architectures to Cloud Foundry]
+* link:lab_06.html[Lab 6 - Getting Started with Spring Cloud Stream]

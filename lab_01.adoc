@@ -1,0 +1,234 @@
+= Lab 1 - Getting Started with Spring Boot
+
+_A completed version of this lab is found at `$COURSE_HOME/labs/complete/hello-spring-boot`._
+
+== Bootstrap the Project
+
+. In your browser, visit http://start.spring.io.
+
+. Fill out the *Project metadata* fields as follows:
++
+Group:: `io.pivotal.spring`
+Artifact:: `hello-spring-boot`
+
+. In the *Dependencies* section, search for `web`, and choose *Web* from the autocomplete menu.
+
+. Click the *Generate Project* button. Your browser will download a zip file.
+Unpack that zip file at `$COURSE_HOME/labs/initial`.
+
+. Import the project's `pom.xml` into your editor/IDE of choice.
+
+. Add a `@RestController` annotation to the class `io.pivotal.spring.hellospringboot.HelloSpringBootApplication`. Don't forget to add the necessary `import` statement.
+
+. Add the following request handler to the class `io.pivotal.spring.hellospringboot.HelloSpringBootApplication`:
++
+[source,java]
+----
+@RequestMapping("/")
+public String hello() {
+    return "Hello World!";
+}
+----
++
+Don't forget to add the necessary `import` statement.
+
+
+== Build and Run with Embedded Apache Tomcat
+
+Spring Boot will embed Apache Tomcat by default.
+
+. Build the application:
++
+----
+$ ./mvnw package
+----
+
+. Run the application:
++
+----
+$ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
++
+You should see the application start up an embedded Apache Tomcat server on port 8080:
++
+----
+2015-12-06 17:17:30.507  INFO 60277 --- [           main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http)
+2015-12-06 17:17:30.511  INFO 60277 --- [           main] io.pivotal.spring.hellospringboot.HelloSpringBootApplication    : Started HelloSpringBootApplication in 3.201 seconds (JVM running for 3.846)
+----
+
+. Visit the application in the browser (http://localhost:8080), and you should see the following:
++
+----
+Hello World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+== Build and Run with Embedded Eclipse Jetty
+
+Spring Boot also supports embedding a Jetty server.
+
+. Open `pom.xml` and replace the following:
++
+----
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+----
++
+with:
++
+----
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jetty</artifactId>
+</dependency>
+----
+
+. Build the application:
++
+----
+$ ./mvnw package
+----
+
+. Run the application:
++
+----
+$ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
++
+You should see the application start up an embedded Jetty server on port 8080:
++
+----
+2015-12-06 17:19:11.649  INFO 60588 --- [           main] .s.b.c.e.j.JettyEmbeddedServletContainer : Jetty started on port(s) 8080 (http/1.1)
+2015-12-06 17:19:11.654  INFO 60588 --- [           main] io.pivotal.spring.hellospringboot.HelloSpringBootApplication    : Started HelloSpringBootApplication in 3.781 seconds (JVM running for 4.217)
+----
+
+. Visit the application in the browser (http://localhost:8080), and you should see the following:
++
+----
+Hello World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+== Refactor to Externalize the Config
+
+. Rename `src/main/resources/application.properties` to `src/main/resources/application.yml`. Into that file, paste the following:
++
+----
+greeting: Hello
+----
+
+. To the class `io.pivotal.spring.hellospringboot.HelloSpringBootApplication`, add a `greeting` field and inject its value:
++
+----
+@Value("${greeting}")
+String greeting;
+----
+
+. Also `io.pivotal.spring.hellospringboot.HelloSpringBootApplication`, change the return statement of `hello()` to the following:
++
+----
+return String.format("%s World!", greeting);
+----
+
+. Build the application:
++
+----
+$ ./mvnw package
+----
+
+. Run the application:
++
+----
+$ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
+
+. Visit the application in the browser (http://localhost:8080), and verify that the output is still the following:
++
+----
+Hello World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+== Using Environment Variables for Config
+
+. Run the application again, this time setting the `GREETING` environment variable:
++
+----
+$ GREETING=Ohai java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
+
+. Visit the application in the browser (http://localhost:8080), and verify that the output has changed to the following:
++
+----
+Ohai World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+== Using Spring Profiles for Config
+
+. Add a `spanish` profile to `application.yml`. Your finished configuration should reflect the following:
++
+----
+greeting: Hello
+
+---
+
+spring:
+  profiles: spanish
+
+greeting: Hola
+----
+
+. Build the application:
++
+----
+$ ./mvnw package
+----
+
+. Run the application, this time setting the `SPRING_PROFILES_ACTIVE` environment variable:
++
+----
+$ SPRING_PROFILES_ACTIVE=spanish java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
+
+. Visit the application in the browser (http://localhost:8080), and verify that the output has changed to the following:
++
+----
+Hola World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+== Resolving Conflicts
+
+. Run the application, this time setting both the `SPRING_PROFILES_ACTIVE` and `GREETING` environment variables:
++
+----
+$ SPRING_PROFILES_ACTIVE=spanish GREETING=Ohai java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
+----
+
+. Visit the application in the browser (http://localhost:8080), and verify that the output has changed to the following:
++
+----
+Ohai World!
+----
+
+. Stop the application (e.g. via CTRL-C).
+
+. Visit http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html to learn more about this outcome and the entire priority scheme for conflict resolution.

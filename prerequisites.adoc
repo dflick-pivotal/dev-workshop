@@ -1,0 +1,29 @@
+To be successful, you'll need certain prerequisite tools installed on the laptops that you'll be bringing to the session:
+
+- minimum http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html[Java 8 JDK] (not just JRE)
+
+- Install the latest Spring Boot CLI. Choose an installation method from the Spring Boot https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#getting-started-installing-the-cli[reference docs].
+
+- Once you have installed the Spring Boot CLI, ensure that it is on your execution path with the following command:
++
+----
+$ spring --version
+Spring CLI v2.1.2.RELEASE
+----
++
+Assuming that this command works, install the Spring Cloud CLI plugin using the following command(boot cli 2.0.x works with cloud cli 2.0.x and boot cli 2.1.x works with cloud cli 2.1.x):
++
+----
+$ spring install org.springframework.cloud:spring-cloud-cli:2.1.0.BUILD-SNAPSHOT
+----
++
+
+- https://git-scm.com/downloads[Git] (latest)
+- https://github.com/cloudfoundry/cli/releases[Cloud Foundry Client] (latest)
+
+- You'll need a free GitHub account. If you don't already have one, create one https://github.com/join[here].
+
+- Also, you'll need to create a Pivotal Web Services account https://console.run.pivotal.io/register[here].
+Pivotal Web Services is a hosted instance of http://cloudfoundry.org[Cloud Foundry] that is operated by http://pivotal.io[Pivotal].
+
+- You will likely find your favorite Java IDE helpful for things like auto-importing packages and classes. https://spring.io/tools[Spring Tool Suite], Eclipse, or IntelliJ IDEA are all perfectly valid choices!
