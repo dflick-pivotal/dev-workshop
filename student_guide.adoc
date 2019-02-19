@@ -35,7 +35,8 @@ $ git clone https://github.com/dflick-pivotal/dev-workshop
 
 * link:lab_01.html[Lab 1 - Getting Started with Spring Boot]
 * link:lab_02.html[Lab 2 - Introspection, Monitoring, and Metrics using Spring Boot Actuator]
-* link:lab_03.html[Lab 3 - Composing Cloud Native Architectures with Spring Cloud]
-* link:lab_04.html[Lab 4 - Operating Cloud Native Architectures with Spring Cloud]
-* link:lab_05.html[Lab 5 - Deploying Cloud Native Architectures to Cloud Foundry]
-* link:lab_06.html[Lab 6 - Getting Started with Spring Cloud Stream]
+* link:lab_03.html[Lab 3 - Operate the App on Cloud Foundry]
+* link:lab_04.html[Lab 4 - Composing Cloud Native Architectures with Spring Cloud]
+* link:lab_05.html[Lab 5 - Operating Cloud Native Architectures with Spring Cloud]
+* link:lab_06.html[Lab 6 - Deploying Cloud Native Architectures to Cloud Foundry]
+* link:lab_07.html[Lab 7 - Getting Started with Spring Cloud Stream]

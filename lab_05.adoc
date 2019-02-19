@@ -1,462 +1,294 @@
 :compat-mode:
-= Lab 5 - Deploying Cloud Native Architectures to Cloud Foundry
+= Lab 5 - Operating Cloud Native Architectures with Spring Cloud
 
-_A completed version of this lab is found at `$COURSE_HOME/labs/complete/fortune-teller-cf`._
+_A completed version of this lab is found at `$COURSE_HOME/labs/complete/fortune-teller`._
 
-Cloud Foundry is an open source platform for running cloud native application architectures. It operates under the tenants of the Cloud Foundry haiku:
+In this lab we're going to leverage some of the operability helps provided by Spring Cloud to monitor, manage, and troubleshoot our Fortune Teller application.
+We'll work with the following:
 
-____
-Here is my code.
+- https://cloud.spring.io/spring-cloud-config/[Spring Cloud Bus], which enables us to refresh the configuration values used by our microservices without restarting or redeploying them.
+- https://github.com/Netflix/Hystrix/wiki/Dashboard[Hystrix Dashboard], which enables us to monitor the status of our application's circuit breakers.
+- http://zipkin.io/[Zipkin], which enables us to determine the sources of latency in our microservice call graphs.
 
-Run it on the cloud for me.
+== Setting up the Cloud Bus
 
-I do not care how.
-____
+Because everyone in the class will be pushing configuration changes to GitHub, you'll need your own fork of the config repository.
 
-Cloud Foundry does the work of analyzing your application and determining its runtime needs through a process called `cf push`, which uploads your code and launches a _buildpack_ to create a runtime package including things like a JDK. This package, called a _droplet_ is launched in a Linux container using the same underlying technology as Docker. Cloud Foundry also handles _provisioning_ of and _binding_ your application to marketplace services like databases, as well as other non-functional concerns like aggregating and providing access to application metrics and logs.
+. Visit https://github.com/dflick-pivotal/configrepo in a browser and click on *Fork*:
++
+image::Common/images/fork-config-repo.png[]
 
-In this lab, we'll leverage _Spring Cloud Services (SCS)_, which is a Cloud Foundry marketplace version of the same services you ran on your laptop. These services are made available via _Pivotal Web Services (PWS)_, which is a SaaS version of Cloud Foundry operated by Pivotal.
+. Once your fork is completed, grab the clone URL
++
 
-== Dependency Changes
-
-we'll make a few changes to the dependencies present in your applications. We'll be removing the Cloud Bus Kafka and Zipkin dependencies. Also, we'll leverage some SCS specific starters. They are a superset of the starters you already used for Spring Cloud OSS, and include features such as opinionated security based on Cloud Foundry service bindings.
-
-. First, we need to alter the dependency management block of the parent pom, at `${COURSE_HOME}/labs/initial/fortune-teller/pom.xml`:
+. Clone your `config-repo` fork with a command similar to the following, but substituting the location of your fork:
 +
 ----
-<dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>io.pivotal.spring.cloud</groupId>
-      <artifactId>spring-cloud-services-dependencies</artifactId>
-      <version>2.0.1.RELEASE</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-dependencies</artifactId>
-      <version>Finchley.RELEASE</version>
-      <type>pom</type>
-      <scope>import</scope>
-    </dependency>
-  </dependencies>
-</dependencyManagement>
+$ git clone https://github.com/student/configrepo.git
 ----
 
-. In `fortune-teller-fortune-service/pom.xml`, replace all of the dependencies matching the pattern `spring-cloud-starter-*` with these SCS dependencies:
+. Now we need to point our Config Server at our forked repo. If you haven't already, shutdown all of the Spring Cloud apps using CTRL-C.
+
+. Open the file `$COURSE_HOME/labs/initial/fortune-teller/config/configserver.yml` in a text editor. Change line 8 to have the location of your fork. Example:
++
+----
+uri: https://github.com/student/configrepo.git
+----
+
+. Now restart the Spring Cloud apps:
++
+----
+$ spring cloud kafka configserver eureka hystrixdashboard
+----
+
+== Changing Log Levels at Runtime
+
+Have you ever been troubleshooting an issue that would no longer manifest after restarting the application, but you also wanted to change the log level?
+We now have a solution to that problem!
+
+Let's start out by adding some `DEBUG` level logs to our microservices.
+
+. Begin by adding a `Logger` to `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController`:
++
+----
+Logger logger = LoggerFactory.getLogger(FortuneController.class);
+----
+
+. Next, add a `DEBUG` log statement to `FortuneController.randomFortune`:
++
+----
+logger.debug("Handling request to /random!");
+----
+
+. Now add a `Logger` to `io.spring.cloud.samples.fortuneteller.ui.UiController`:
++
+----
+Logger logger = LoggerFactory.getLogger(UiController.class);
+----
+
+. Then, add a `DEBUG` log statement to:
+`UiController.randomFortune`:
++
+----
+logger.debug("Handling request to /random!");
+----
+
+. We also need to add the Spring Cloud Bus dependencies to our microservices. Add the following to `pom.xml` for both `fortune-teller-fortune-service` and `fortune-teller-ui`:
 +
 ----
 <dependency>
-  <groupId>io.pivotal.spring.cloud</groupId>
-  <artifactId>spring-cloud-services-starter-config-client</artifactId>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-bus-kafka</artifactId>
 </dependency>
+----
+
+. Build and start both the Fortune Service and the Fortune UI.
+
+. Access http://localhost:8080 in the browser. You should *not* see your newly added log messages in either applications' consoles.
+
+. Now it's time to change the log level at runtime. In your locally cloned fork of the config repo, edit the file `application.yml`. Change line 6 such that the logging section now appears as follows:
++
+----
+logging:
+  level:
+    io:
+      spring:
+        cloud:
+          samples: DEBUG
+----
+
+. Commit your change:
++
+----
+$ git commit -am "change logging level to DEBUG"
+
+----
+
+. Push your change:
++
+----
+$ git push origin master
+----
+
+. Check if Config Server already got the new config from the repo:
++
+image::Common/images/config.png[]
+
+. Curl the refresh endpoint of one of your apps to refresh the config in both of your apps via cloud bus
+----
+curl -X POST http://localhost:8080/actuator/bus-refresh
+----
+. Access http://localhost:8080 in the browser. You *should* see your newly added log messages in both applications' consoles (e.g.):
++
+----
+2019-02-19 12:06:09.408 DEBUG 5217 --- [nio-8081-exec-9] i.s.c.s.f.f.c.FortuneController          : Handling request to /random!
+----
+
+. Leave both fortune applications running for the next set of exercises!
+
+== Hystrix Dashboard
+
+You should already have the Hystrix Dashboard running based on the `spring cloud` command that you ran during the *Cloud Bus* exercise.
+
+. Visit http://localhost:7979.
+You should see output similar to the following:
++
+image::Common/images/hystrix_dashboard_1.png[]
+
+. Paste http://localhost:8080/actuator/hystrix.stream into the text field and click *Monitor Stream*.
+You should see output similar to the following:
++
+image::Common/images/hystrix_dashboard_2.png[]
+
+. In a browser, access the fortune-teller-ui application at http://localhost:8080 and show that the circuit breaker is registering successful requests.
+
+. Stop the fortune-teller-fortune-service application.
+
+. Access the fortune-teller-ui application at http://localhost:8080, see that the ``fallback fortune'' is being returned, and show that the circuit breaker is registering short-circuited requests.
++
+image::Common/images/fortunes_4.png[]
++
+image::Common/images/fortunes_5.png[]
+
+. Restart the fortune-teller-fortune-service application.
+
+. Continue to access the fortune-teller-ui and watch the dashboard.
+After the fortune-teller-fortune-service has re-registered with Eureka and the fortune-teller-ui load balancer caches are refreshed, you will see the circuit breaker recover.
+You should then start getting random fortunes again!
+
+== Swapping Out Fallback Behavior with Cloud Bus
+
+The Spring Cloud Bus is not only useful for swapping out log levels. Let's use it to swap out a developer defined property instead.
+
+. Take a look at `io.spring.cloud.samples.fortuneteller.ui.FortuneProperties`:
++
+----
+@ConfigurationProperties(prefix = "fortune") // <1>
+@RefreshScope // <2>
+public class FortuneProperties {
+
+    private String fallbackFortune = "Your future is unclear."; // <3>
+
+    public String getFallbackFortune() {
+        return fallbackFortune;
+    }
+
+    public void setFallbackFortune(String fallbackFortune) {
+        this.fallbackFortune = fallbackFortune;
+    }
+
+}
+----
+<1> `FortuneProperties` is annotated as a `@ConfigurationProperties` object. These objects provide a type-safe mechanism for handling configuration. Learn more from the following  http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-typesafe-configuration-properties[documentation].
+<2> `FortuneProperties` is also scoped as `@RefreshScope`. This will cause it to be reinitialized based on configuration changes. Learn more from the following http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_refresh_scope[documentation].
+<3> `fallbackFortune` has a default value that is equivalent to what we have in our config repo. Config Server configuration overrides any local configuration by default, so this value is not actually causing the runtime behavior of our app at this time.
+
+. Stop the `fortune-teller-fortune-service` application.
+
+. Access the fortune-teller-ui application at http://localhost:8080, see that the ``fallback fortune'' is being returned.
++
+image::Common/images/fortunes_4.png[]
+
+. In your local clone of the config repo fork, edit line 9 such that the `fortune` section looks like the following:
++
+----
+fortune:
+  fallbackFortune: Today is your lucky day!
+----
+
+. Save, commit, and push your changes to GitHub.
+
+. Refreshed the app config via:
+----
+http://localhost:8080/actuator/bus-refresh endpoint you should see the new fallback.
+----
+
+. Access the fortune-teller-ui application at http://localhost:8080, see that the new ``fallback fortune'' is being returned.
++
+image::Common/images/lucky_day.png[]
+
+== Correlated Logs with Spring Cloud Sleuth
+
+Now we're going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.
+
+To look at the latency involved in a call graph, we're interested in four events:
+
+- *Client Send (CS):* the client sends a call to the remote service
+- *Server Receive (SR):* the call is received by the remote service and work begins
+- *Server Send (SS):* the server has completed work and responds to the client
+- *Client Receive (CR):* the client receives the response from the remote service
+
+Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.
+
+. Add the following dependency to the `pom.xml` of both `fortune-teller-fortune-service` and `fortune-teller-ui`:
++
+----
 <dependency>
-  <groupId>io.pivotal.spring.cloud</groupId>
-  <artifactId>spring-cloud-services-starter-service-registry</artifactId>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-zipkin</artifactId>
 </dependency>
 ----
++
+This dependency is for Zipkin, but it adds the Sleuth dependencies transitively, and we'll need Zipkin for the next exercise.
 
-. In `fortune-teller-ui/pom.xml`, replace all of the dependencies matching the pattern `spring-cloud-starter-*` with these SCS dependencies:
+. Let's add some logs representing our events of interest. In `fortune-teller-ui`, add a `Logger` to `io.spring.cloud.samples.fortuneteller.ui.FortuneService`:
 +
 ----
-<dependency>
-  <groupId>io.pivotal.spring.cloud</groupId>
-  <artifactId>spring-cloud-services-starter-config-client</artifactId>
-</dependency>
-<dependency>
-  <groupId>io.pivotal.spring.cloud</groupId>
-  <artifactId>spring-cloud-services-starter-service-registry</artifactId>
-</dependency>
-<dependency>
-  <groupId>io.pivotal.spring.cloud</groupId>
-  <artifactId>spring-cloud-services-starter-circuit-breaker</artifactId>
-</dependency>
+Logger logger = LoggerFactory.getLogger(FortuneService.class);
 ----
 
-== Build and Push!
-
-. Using Maven, build and package the application:
+. Edit the definition of `FortuneService.randomFortune` to include logs for client send and client receive events:
 +
 ----
-$ ./mvnw package
+@HystrixCommand(fallbackMethod = "fallbackFortune")
+public Fortune randomFortune() {
+  logger.info("CS: calling http://fortunes/random.");
+  Fortune fortune = restTemplate.getForObject("http://fortunes/random", Fortune.class);
+  logger.info("CR: received response from http://fortunes/random.");
+  return fortune;
+}
 ----
 
-. Login to Pivotal Cloud Foundry using the Cloud Foundry CLI, and target the space you were assigned in the class spreadsheet:
+. In `fortune-teller-fortune-service`, edit the definition of `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController.randomFortune` to include logs for server receive and server send events:
 +
 ----
-cf login -a api.run.pivotal.io
-API endpoint: api.run.pivotal.io
-
-Email> dflick@pivotal.io
-
-Password>
-Authenticating...
-OK
-
-Select an org (or press enter to skip):
-1. dieter-org
-2. EMEA
-
-Org> 2
-Targeted org EMEA
-
-Select a space (or press enter to skip):
-There are too many options to display, please type in the name.
-
-Space> dflick-dev
-Targeted space dflick-dev
-
-
-
-API endpoint:   https://api.run.pivotal.io (API version: 2.131.0)
-User:           dflick@pivotal.io
-Org:            EMEA
-Space:          dflick-dev
+@RequestMapping("/random")
+public Fortune randomFortune() {
+  logger.debug("Handling request to /random!");
+  logger.info("SR: received call to /random.");
+  List<Fortune> randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
+  logger.info("SS: responding to call to /random.");
+  return randomFortunes.get(0);
+}
 ----
 
-. Next, we'll use a script to create instances of each of the marketplace services that we need. Take a look at `scripts/create_services.sh`:
-+
-----
-#!/usr/bin/env bash
+. Rebuild and restart both applications.
 
-cf cs p.mysql db-small fortunes-db
-echo "configure your repo !!!!!"
-#cf cs p-config-server standard config-server -c '{"skipSslValidation": true, "git": { "uri": "https://github.com/spring-cloud-services-samples/fortune-teller", "searchPaths": "configuration" } }'
-cf cs p-config-server standard config-server -c '{"git": { "uri": "https://github.com/dflick-pivotal/configrepo" } }'
-cf cs p-service-registry standard service-registry
-cf cs p-circuit-breaker-dashboard standard circuit-breaker
+. Access http://localhost:8080 in the browser. You should see the correlated log events in each applications' logs:
++
+.fortune-teller-ui
+----
+2016-10-16 14:06:31.625  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CS: calling http://fortunes/random.
+2016-10-16 14:06:31.631  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CR: received response from http://fortunes/random.
 ----
 +
-This script is creating each of the following:
-+
-- A MySQL database
-- A Config Server, pointing to a Git repository (if you like, point at your own fork by editing the script!)
-- A Service Registry, based on Eureka
-- A Circuit Breaker Dashboard, based on the Hystrix Dashboard
-+
-The SCS services are provisioned asynchronously, so you'll need to check on their status before continuing.
-
-. Execute the script:
-+
+.fortune-teller-fortune-service
 ----
-$ scripts/create_services.sh
-Creating service instance fortunes-db in org EMEA / space dflick-dev as dflick@pivotal.io...
-OK
-
-Creating service instance fortunes-config-server in org EMEA / space dflick-dev as dflick@pivotal.io...
-OK
-
-Create in progress. Use 'cf services' or 'cf service fortunes-config-server' to check operation status.
-
-Creating service instance fortunes-service-registry in org EMEA / space dflick-dev as dflick@pivotal.io...
-OK
-
-Create in progress. Use 'cf services' or 'cf service fortunes-service-registry' to check operation status.
-
-Creating service instance fortunes-circuit-breaker-dashboard in org EMEA / space dflick-dev as dflick@pivotal.io...
-OK
-
-Create in progress. Use 'cf services' or 'cf service fortunes-circuit-breaker-dashboard' to check operation status.
+2016-10-16 14:06:31.628  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SR: received call to /random.
+2016-10-16 14:06:31.629  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SS: responding to call to /random.
 ----
 +
-Then check the status of all services:
+Pay attention to the section of the log statement that appears in square brackets immediately after the log level:
 +
 ----
-$ cf services
-Getting services in org EMEA / space dflick-dev as dflick@pivotal.io...
-
-name                                 service                       plan    bound apps   last operation
-fortunes-circuit-breaker-dashboard   p-circuit-breaker-dashboard   trial                create succeeded
-fortunes-config-server               p-config-server               trial                create succeeded
-fortunes-db                          cleardb                       spark                create succeeded
-fortunes-service-registry            p-service-registry            trial                create in progress
+[fortunes,d64d19d2235e760,6b492a088a2ea3f2,false]
 ----
 +
-You'll want to keep executing this command (e.g. by using the UNIX command `watch`) until all of the services have the status `create succeeded`:
+The tokens represent the following:
 +
-----
-$ cf s
-Getting services in org EMEA / space dflick-dev as dflick@pivotal.io...
-
-name                                 service                       plan    bound apps   last operation
-fortunes-circuit-breaker-dashboard   p-circuit-breaker-dashboard   trial                create succeeded
-fortunes-config-server               p-config-server               trial                create succeeded
-fortunes-db                          cleardb                       spark                create succeeded
-fortunes-service-registry            p-service-registry            trial                create succeeded
-----
-
-. Next we'll use `cf push` to push the `fortune-teller` applications. Take a look at `fortune-teller/manifest-pcf.yml` (look for numbered annotations in the listing):
+1. The application name (`fortunes`)
+2. The trace ID (`d64d19d2235e760`)
+3. The span ID (`6b492a088a2ea3f2`)
+4. Should this trace be exported to Zipkin (`false`)
 +
-----
----
-applications:
-- name: fortune-service <1>
-  memory: 1024M <2>
-  random-route: true <3>
-  path: fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar <4>
-  services: <5>
-  - fortunes-db
-  - config-server
-  - service-registry
-  #env:
-    # Replace with API URI of target PCF environment
-    #CF_TARGET: https://api.yourpcfenvironment.local
-- name: fortune-ui
-  memory: 1024M
-  random-route: true
-  path: fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
-  services:
-  - config-server
-  - service-registry
-  - circuit-breaker
-  #env: <6>
-    # Replace with API URI of target PCF environment
-    #CF_TARGET: https://api.yourpcfenvironment.local
-----
-<1> Gives the application a name unique to your space.
-<2> Sets the maximum available memory in the Linux container allocated to your application.
-<3> Give the application a hostname. The hostname must be unique to the domain you're using (in this case, `cfapps.io`), so `${random-word}` will attach a randomly generated token from a dictionary.
-<4> Indicates the application artifact (in this case, your Spring Boot jar file) to be uploaded.
-<5> Indicates the services that should be bound to your application.
-<6> Indicates environment variables to be set in the environment of your running application process.
-
-. Push the applications. This command will automatically pickup a `manifest.yml` file if present in the current directory (look for numbered annotations in the listing):
-+
-----
-cf push -f manifest-pws.yml <1>
-Pushing from manifest to org EMEA / space dflick-dev as dflick@pivotal.io...
-Using manifest file manifest-pws.yml
-Getting app info...
-Updating app with these attributes...
-  name:                fortunes
-  path:                /Users/dflick/Documents/development/workspaces/workspace-dev-workshop/dev-workshop/labs/complete/fortune-teller-cf/fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar
-  command:             JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR -XX:ActiveProcessorCount=$(nproc) -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" && CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT -loadedClasses=24843 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") && echo JVM Memory Configuration: $CALCULATED_MEMORY && JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" && MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
-  disk quota:          1G
-  health check type:   port
-  instances:           1
-  memory:              1G
-  stack:               cflinuxfs3
-  services:
-    fortunes-config-server
-    fortunes-db
-    fortunes-service-registry
-  routes:
-    fortunes-agile-swan.cfapps.io
-
-Creating app with these attributes...
-+ name:        fortune-ui
-  path:        /Users/dflick/Documents/development/workspaces/workspace-dev-workshop/dev-workshop/labs/complete/fortune-teller-cf/fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
-+ instances:   1
-+ memory:      1G
-  services:
-+   fortunes-circuit-breaker-dashboard <2>
-+   fortunes-config-server
-+   fortunes-service-registry
-  routes:
-+   fortune-ui-shy-okapi.cfapps.io <3>
-
-Updating app fortunes...
-Mapping routes...
-Comparing local files to remote cache...
-Packaging files to upload...
-Uploading files... <4>
- 952.69 KiB / 952.69 KiB [================================================================================================================] 100.00% 5s
-
-Waiting for API to complete processing files...
-
-Stopping app...
-
-Staging app and tracing logs...
-   Downloading dotnet_core_buildpack_beta...
-   Downloading staticfile_buildpack...
-   Downloading java_buildpack...
-   Downloading dotnet_core_buildpack...
-   Downloading nodejs_buildpack...
-   Downloaded dotnet_core_buildpack_beta
-   Downloading go_buildpack...
-   Downloaded dotnet_core_buildpack
-   Downloading python_buildpack...
-   Downloaded go_buildpack
-   Downloading php_buildpack...
-   Downloaded nodejs_buildpack
-   Downloading binary_buildpack...
-   Downloaded python_buildpack
-   Downloading ruby_buildpack...
-   Downloaded binary_buildpack
-   Downloaded staticfile_buildpack
-   Downloaded php_buildpack
-   Downloaded ruby_buildpack
-   Downloaded java_buildpack
-   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 creating container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
-   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 successfully created container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
-   Downloading build artifacts cache...
-   Downloading app package...
-   Downloaded build artifacts cache (132B)
-   Downloaded app package (50.1M)
-   -----> Java Buildpack v4.17.2 (offline) | https://github.com/cloudfoundry/java-buildpack.git#47e68da <5>
-   -----> Downloading Jvmkill Agent 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/jvmkill/bionic/x86_64/jvmkill-1.16.0_RELEASE.so (found in cache)
-   -----> Downloading Open Jdk JRE 1.8.0_202 from https://java-buildpack.cloudfoundry.org/openjdk/bionic/x86_64/openjdk-1.8.0_202.tar.gz (found in cache)
-          Expanding Open Jdk JRE to .java-buildpack/open_jdk_jre (1.9s)
-          JVM DNS caching disabled in lieu of BOSH DNS caching
-   -----> Downloading Open JDK Like Memory Calculator 3.13.0_RELEASE from https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-3.13.0_RELEASE.tar.gz (found in cache)
-          Loaded Classes: 23127, Threads: 250 <6>
-   -----> Downloading Client Certificate Mapper 1.8.0_RELEASE from https://java-buildpack.cloudfoundry.org/client-certificate-mapper/client-certificate-mapper-1.8.0_RELEASE.jar (found in cache)
-   -----> Downloading Container Security Provider 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/container-security-provider/container-security-provider-1.16.0_RELEASE.jar (found in cache)
-   -----> Downloading Spring Auto Reconfiguration 2.5.0_RELEASE from https://java-buildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-2.5.0_RELEASE.jar (found in cache)
-   Exit status 0
-   Uploading droplet, build artifacts cache... <4>
-   Uploading droplet...
-   Uploading build artifacts cache...
-   Uploaded build artifacts cache (132B)
-   Uploaded droplet (97.3M) <7>
-   Uploading complete
-   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 stopping instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
-   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 destroying container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3 <8>
-   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 successfully destroyed container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
-
-Waiting for app to start... <9>
-
-name:              fortunes
-requested state:   started
-routes:            fortunes-agile-swan.cfapps.io
-last uploaded:     Tue 19 Feb 15:11:56 CET 2019
-stack:             cflinuxfs3
-buildpacks:        client-certificate-mapper=1.8.0_RELEASE container-security-provider=1.16.0_RELEASE
-                   java-buildpack=v4.17.2-offline-https://github.com/cloudfoundry/java-buildpack.git#47e68da java-main java-opts java-security
-                   jvmkill-agent=1.16.0_RELEASE open-jd...
-
-type:            web
-instances:       1/1
-memory usage:    1024M
-start command:   JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR
-                 -XX:ActiveProcessorCount=$(nproc)
-                 -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext
-                 -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" &&
-                 CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT
-                 -loadedClasses=23906 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") && echo JVM Memory Configuration:
-                 $CALCULATED_MEMORY && JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" && MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec
-                 $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
-     state     since                  cpu      memory         disk           details
-#0   running   2019-02-19T14:12:42Z   202.3%   243.5M of 1G   182.8M of 1G <10>
-
-Creating app fortune-ui...
-Mapping routes...
-Binding services...
-Comparing local files to remote cache...
-Packaging files to upload...
-Uploading files...
- 1.16 MiB / 1.16 MiB [====================================================================================================================] 100.00% 6s
-
-Waiting for API to complete processing files...
-
-Staging app and tracing logs...
-   Downloading dotnet_core_buildpack_beta...
-   Downloading nodejs_buildpack...
-   Downloading python_buildpack...
-   Downloading dotnet_core_buildpack...
-   Downloading staticfile_buildpack...
-   Downloaded nodejs_buildpack
-   Downloading java_buildpack...
-   Downloaded python_buildpack
-   Downloading ruby_buildpack...
-   Downloaded staticfile_buildpack
-   Downloading binary_buildpack...
-   Downloaded dotnet_core_buildpack_beta
-   Downloading php_buildpack...
-   Downloaded dotnet_core_buildpack
-   Downloading go_buildpack...
-   Downloaded ruby_buildpack
-   Downloaded php_buildpack
-   Downloaded java_buildpack
-   Downloaded go_buildpack
-   Downloaded binary_buildpack
-   Cell 203cbc88-5541-42bb-9365-604cb903cbfb creating container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
-   Cell 203cbc88-5541-42bb-9365-604cb903cbfb successfully created container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
-   Downloading app package...
-   Downloaded app package (44.2M)
-   -----> Java Buildpack v4.17.2 (offline) | https://github.com/cloudfoundry/java-buildpack.git#47e68da
-   -----> Downloading Jvmkill Agent 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/jvmkill/bionic/x86_64/jvmkill-1.16.0_RELEASE.so (found in cache)
-   -----> Downloading Open Jdk JRE 1.8.0_202 from https://java-buildpack.cloudfoundry.org/openjdk/bionic/x86_64/openjdk-1.8.0_202.tar.gz (found in cache)
-          Expanding Open Jdk JRE to .java-buildpack/open_jdk_jre (1.2s)
-          JVM DNS caching disabled in lieu of BOSH DNS caching
-   -----> Downloading Open JDK Like Memory Calculator 3.13.0_RELEASE from https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-3.13.0_RELEASE.tar.gz (found in cache)
-          Loaded Classes: 21679, Threads: 250
-   -----> Downloading Client Certificate Mapper 1.8.0_RELEASE from https://java-buildpack.cloudfoundry.org/client-certificate-mapper/client-certificate-mapper-1.8.0_RELEASE.jar (found in cache)
-   -----> Downloading Container Security Provider 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/container-security-provider/container-security-provider-1.16.0_RELEASE.jar (found in cache)
-   -----> Downloading Spring Auto Reconfiguration 2.5.0_RELEASE from https://java-buildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-2.5.0_RELEASE.jar (found in cache)
-   Exit status 0
-   Uploading droplet, build artifacts cache...
-   Uploading droplet...
-   Uploading build artifacts cache...
-   Uploaded build artifacts cache (128B)
-   Uploaded droplet (91.3M)
-   Uploading complete
-   Cell 203cbc88-5541-42bb-9365-604cb903cbfb stopping instance d29dd459-4660-493a-a652-e7d3a9bbabd2
-   Cell 203cbc88-5541-42bb-9365-604cb903cbfb destroying container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
-
-Waiting for app to start...
-
-name:              fortune-ui
-requested state:   started
-routes:            fortune-ui-shy-okapi.cfapps.io
-last uploaded:     Tue 19 Feb 15:13:35 CET 2019
-stack:             cflinuxfs3
-buildpacks:        client-certificate-mapper=1.8.0_RELEASE container-security-provider=1.16.0_RELEASE
-                   java-buildpack=v4.17.2-offline-https://github.com/cloudfoundry/java-buildpack.git#47e68da java-main java-opts java-security
-                   jvmkill-agent=1.16.0_RELEASE open-jd...
-
-type:            web
-instances:       1/1
-memory usage:    1024M
-start command:   JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR
-                 -XX:ActiveProcessorCount=$(nproc)
-                 -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext
-                 -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" &&
-                 CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT
-                 -loadedClasses=22458 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") && echo JVM Memory Configuration:
-                 $CALCULATED_MEMORY && JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" && MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec
-                 $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
-     state     since                  cpu      memory         disk           details
-#0   running   2019-02-19T14:14:19Z   262.5%   260.6M of 1G   176.5M of 1G <11>
-----
-<1> app is pushed and created via an API call to Cloud Foundry.
-<2> Each of the marketplace services created by the script is bound to the application.
-<3> route is created via an API call to Cloud Foundry and bound to the application. This means any accesses to this route via HTTP will be routed to instances of this application.
-<4> The application code is uploaded to the Cloud Foundry blobstore.
-<5> The staging process is started. Cloud Foundry determines that the Java buildpack should be run on this application and starts it.
-<6> The Cloud Foundry Java buildpack automatically calculates the JVM memory settings optimal for the chosen maximum memory for the Linux container.
-<7> The droplet created by running the Java buildpack is uploaded to the Cloud Foundry blobstore.
-<8> The Linux container used to stage the application is destroyed.
-<9> A new Linux container is created, and the JVM process is started.
-<10> When the process becomes healthy, the CLI reports the command used to start the process.
-<11> The process completes for each application in the manifest.
-
-. Access http://console.run.pivotal.io in the browser. You'll be redirected to login.
-
-. Choose your organization and space and you should see your two applications:
-+
-image::Common/images/pws_2.png[]
-
-. Click *Services* and you'll see the marketplace service instances created by the script here:
-+
-image::Common/images/pws_4.png[]
-
-. Click *Service Registry* and then click *Manage*. This should open another browser window/tab. You may be challenged for authentication again. Then you'll see the Service Registry dashboard, along with the registrations for your two apps:
-+
-image::Common/images/pws_6.png[]
-
-. Return to the *Services* screen, click *Circuit Breaker* and click *Manage* afterwards. Generate some traffic to your `fortune-teller-ui` application's assigned route. You should see usage in the Circuit Breaker Dashboard:
-+
-image::Common/images/pws_11.png[]
-
-. You can examine the logs for your applications by using the `cf logs` command:
-+
-----
-$ cf logs fortunes
-2019-02-19T15:53:15.15+0100 [RTR/0] OUT fortunes-agile-swan.cfapps.io - [2019-02-19T14:53:15.132+0000] "GET /random HTTP/1.1" 200 0 77 "-" "Java/1.8.0_202" "10.10.66.121:52280" "10.10.149.87:61124" x_forwarded_for:"54.224.103.79, 10.10.66.121" x_forwarded_proto:"https" vcap_request_id:"7b10d7f5-4ed4-4b1d-401c-a4c1f471e454" response_time:0.026635207 app_id:"c21b1f8f-cad0-444a-b280-0a9c27d32790" app_index:"0" x_b3_traceid:"edf1e481626eba94" x_b3_spanid:"edf1e481626eba94" x_b3_parentspanid:"-"
-   2019-02-19T15:53:15.15+0100 [RTR/0] OUT
-   2019-02-19T15:53:15.14+0100 [APP/PROC/WEB/0] OUT 2019-02-19 14:53:15.146  INFO 14 --- [nio-8080-exec-6] i.s.c.s.f.f.c.FortuneController          : SR: received call to /random.
-   2019-02-19T15:53:15.15+0100 [APP/PROC/WEB/0] OUT 2019-02-19 14:53:15.154  INFO 14 --- [nio-8080-exec-6] i.s.c.s.f.f.c.FortuneController          : SS: responding to call to /random.
-...
-----
+To learn more about this terminology, see this http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2[section] of the Spring Cloud Sleuth documentation.

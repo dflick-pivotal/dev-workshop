@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
-<title>Lab 3 - Composing Cloud Native Architectures with Spring Cloud</title>
+<title>Lab 3 - Operate the App on Cloud Foundry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -432,128 +432,165 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1>Lab 3 - Composing Cloud Native Architectures with Spring Cloud</h1>
+<h1>Lab 3 - Operate the App on Cloud Foundry</h1>
 </div>
 <div id="content">
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p><em>A completed version of this lab is found at <code>$COURSE_HOME/labs/complete/fortune-teller</code>.</em></p>
+<p><em>A completed version of this lab is found at <code>$COURSE_HOME/labs/complete/hello-spring-boot</code>.</em></p>
 </div>
-<div class="paragraph">
-<p>In this lab we&#8217;re going to build a Fortune Teller application from two microservices, one that serves up random Chinese fortune cookie fortunes, and one that presents a user interface.
-The resulting application looks like the following screenshot:</p>
 </div>
+</div>
+<div class="sect1">
+<h2 id="_create_a_manifest_file">Create a manifest file</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Continue with the project you completed in <a href="lab_02.html">Lab 2</a>.</p>
+</li>
+<li>
+<p>Create a <code>manifest.yml</code> file in the project root folder. Manifests provide consistency and reproducibility deploying apps to Cloud Foundry:</p>
+<div class="listingblock">
+<div class="content">
+<pre>--- <b class="conum">(1)</b>
+applications: <b class="conum">(2)</b>
+- name: hello <b class="conum">(3)</b>
+  random-route: true <b class="conum">(4)</b>
+  memory: 1G <b class="conum">(5)</b>
+  instances: 1
+	path: target/hello-spring-boot-0.0.1-SNAPSHOT.jar <b class="conum">(6)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>The manifest begins with three dashes.</p>
+</li>
+<li>
+<p>The applications block begins with a heading followed by a colon.</p>
+</li>
+<li>
+<p>The app name.</p>
+</li>
+<li>
+<p>A route mapped to an app is required to be unique on a Cloud Foundry instance. The property ensures a unique route mapped to the app.</p>
+</li>
+<li>
+<p>There are plenty other properties available (ex. memory of the container the app lives in). <a href="https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html">docs</a></p>
+</li>
+<li>
+<p>Path to the artifact we want to run on Cloud Foundry</p>
+</li>
+</ol>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_push">Push!</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Login to Pivotal Cloud Foundry using the Cloud Foundry CLI, and target the space you were assigned in the class spreadsheet:</p>
+<div class="listingblock">
+<div class="content">
+<pre>cf login -a api.run.pivotal.io
+API endpoint: api.run.pivotal.io
+
+Email&gt; dflick@pivotal.io
+
+Password&gt;
+Authenticating...
+OK
+
+Select an org (or press enter to skip):
+1. dieter-org
+2. EMEA
+
+Org&gt; 2
+Targeted org EMEA
+
+Select a space (or press enter to skip):
+There are too many options to display, please type in the name.
+
+Space&gt; dflick-dev
+Targeted space dflick-dev
+
+
+
+API endpoint:   https://api.run.pivotal.io (API version: 2.131.0)
+User:           dflick@pivotal.io
+Org:            EMEA
+Space:          dflick-dev</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Push the app to cloud foundry:</p>
+<div class="listingblock">
+<div class="content">
+<pre>cf push</pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_apps_manager">Apps Manager</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Access <a href="http://console.run.pivotal.io" class="bare">http://console.run.pivotal.io</a> in the browser. You&#8217;ll be redirected to login.</p>
+</li>
+<li>
+<p>Choose your organization and space and you should see your app:</p>
 <div class="imageblock">
 <div class="content">
-<img src="Common/images/fortunes-ui.png" alt="fortunes ui" width="50%">
+<img src="Common/images/app_01.png" alt="app 01">
 </div>
 </div>
-<div class="paragraph">
-<p>We&#8217;ll leverage libraries and services from Spring Cloud and Netflix OSS to help us compose the system.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_bootstrapping">Bootstrapping</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Import the project&#8217;s <code>pom.xml</code>, found at <code>$COURSE_HOME/labs/initial/fortune-teller</code> into your IDE of choice.</p>
 </li>
 <li>
-<p>At the command line, change directories to <code>$COURSE_HOME/labs/initial/fortune-teller</code>.</p>
-</li>
-<li>
-<p>Run the following command:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ spring cloud kafka configserver eureka hystrixdashboard</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This command will helpfully start up the following components for us:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="https://kafka.apache.org/">Apache Kafka</a></p>
-</li>
-<li>
-<p><a href="https://cloud.spring.io/spring-cloud-config/">Spring Cloud Config Server</a></p>
-</li>
-<li>
-<p><a href="https://github.com/Netflix/eureka/wiki">Netflix OSS Eureka</a></p>
-</li>
-<li>
-<p><a href="https://github.com/Netflix/Hystrix/wiki/Dashboard">Netflix OSS Hystrix Dashboard</a></p>
-</li>
-<li>
-<p><a href="http://zipkin.io/">Zipkin</a></p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>We&#8217;ll use all of these components to help us compose and operate our Fortune Teller application.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_config_server">Config Server</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Browse the file <a href="https://github.com/dflick-pivotal/configrepo/blob/master/application.yml" class="bare">https://github.com/dflick-pivotal/configrepo/blob/master/application.yml</a>. This file contains a fallback message for our fortune service.</p>
-</li>
-<li>
-<p>Browse to <a href="http://localhost:8888/application/default" class="bare">http://localhost:8888/application/default</a>.
-You should see output similar to the following:</p>
-<div class="listingblock">
-<div class="content">
-<pre>{
-  "name": "application",
-  "profiles": [
-    "default"
-  ],
-  "label": null,
-  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
-  "state": null,
-  "propertySources": [
-    {
-      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
-      "source": {
-        "fortune.fallbackFortune": "Your future is bright!"
-      }
-    }
-  ]
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Note that the response JSON defines a Spring <code>PropertySource</code> that contains configuration consistent with what you saw in the Git repository.</p>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_eureka_server">Eureka Server</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Browse to <a href="http://localhost:8761" class="bare">http://localhost:8761</a>.
-You should see a UI similar to the following:</p>
+<p>Click on the route to load the app in a browser:</p>
 <div class="imageblock">
 <div class="content">
-<img src="Common/images/eureka_1.png" alt="eureka 1">
+<img src="Common/images/app_02.png" alt="app 02">
 </div>
+</div>
+</li>
+<li>
+<p>Go back to the apps manager and click on the app name to see more details:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/app_03.png" alt="app 03">
+</div>
+</div>
+</li>
+<li>
+<p>Recognize the spring-boot icon in the left hand upper corner. This indicates the app was recognized as a spring-boot app. This allows you to access within apps manager ui actuator endpoints to operate your app. Click on Logs to set the log level of your app during app runtime:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/app_04.png" alt="app 04">
+</div>
+</div>
+</li>
+<li>
+<p>Go back to the application details within apps manager and click <strong>View in PCF Metrics</strong></p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/app_05.png" alt="app 05">
+</div>
+</div>
+<div class="paragraph">
+<p>PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (crashes, start, stop, &#8230;&#8203;) and logs are available. Logs are visualized within the same context as metrics and events. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.</p>
 </div>
 </li>
 </ol>
@@ -561,394 +598,41 @@ You should see a UI similar to the following:</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_fortune_service">Fortune Service</h2>
+<h2 id="_cf_cli">CF CLI</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Now that our Spring Cloud/Netflix OSS infrastructure is bootstrapped, we&#8217;ll begin development of our first microservice.
-The Fortune Service will serve up a list of all fortune cookie fortunes present in its database or a single random fortune.</p>
+<p>Apps Manager and CF cli implement the cloud controller api. There plenty of cf cli commands available to manage your app. We speak about the application dial tone. Meaning:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cf COMMAND APP_NAME</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Everything you do is within the context of an app. You tell Cloud Foundry what you want to do with an app. If you want to stop, start, scale, stream logs, set env variables, &#8230;&#8203; by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Create a JPA domain class, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.Fortune</code>.
-Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@Entity
-@Table(name = "fortunes")
-public class Fortune {
-
-    @Id
-    @GeneratedValue
-    private Long id;
-
-    @Column(nullable = false)
-    private String text;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
-</div>
-<div class="paragraph">
-<p>This class represents the domain model for a fortune, having an unique identifier and the fortune&#8217;s text.</p>
-</div>
-</li>
-<li>
-<p>Create a Spring Data JPA repository interface, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneRepository</code>.
-Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>public interface FortuneRepository extends PagingAndSortingRepository&lt;Fortune, Long&gt; {
-
-    @Query("select fortune from Fortune fortune order by RAND()")
-    public List&lt;Fortune&gt; randomFortunes(Pageable pageable);
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
-</div>
-<div class="paragraph">
-<p>This interface will provide all of the basic boilerplate CRUD features we&#8217;ll want for our <code>Fortune</code> domain class.
-The <code>@Query</code> annotation defines a SQL statement that will return a random ordering of the fortunes.
-We&#8217;ll use this as the basis of returning a random fortune via our REST interface.</p>
-</div>
-</li>
-<li>
-<p>Create a Spring MVC Controller class, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController</code>.
-Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@RestController
-public class FortuneController {
-
-    @Autowired
-    FortuneRepository repository;
-
-    @RequestMapping("/fortunes")
-    public Iterable&lt;Fortune&gt; fortunes() {
-        return repository.findAll();
-    }
-
-    @RequestMapping("/random")
-    public Fortune randomFortune() {
-        List&lt;Fortune&gt; randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
-        return randomFortunes.get(0);
-    }
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
-</div>
-<div class="paragraph">
-<p>This class provides the two REST endpoints of our microservice.
-The <code>randomFortune</code> method provides a <code>PageRequest</code> to limit the returned results to one.</p>
-</div>
-</li>
-<li>
-<p>Add <code>@EnableDiscoveryClient</code> (to switch on Eureka registration) annotations to <code>io.spring.cloud.samples.fortuneteller.fortuneservice.Application</code>.</p>
-</li>
-<li>
-<p>Paste the following configuration properties into the file <code>src/main/resources/bootstrap.yml</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>spring:
-  application:
-    name: fortunes</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This configuration specifies the name of the application, which will be used to register the service in Eureka.</p>
-</div>
-</li>
-<li>
-<p>Paste the following configuration properties into the file <code>src/main/resources/application.yml</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>spring:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-
-ribbon:
-  IsSecure: false
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-
-server:
-  port: 8081</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This configuration specifies the model to DDL setting to be used by Hibernate.</p>
-</div>
-</li>
-<li>
-<p>Build the application:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ ../mvnw package</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Run the application:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ java -jar fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar</pre>
-</div>
-</div>
-</li>
-<li>
-<p>After the service has been running for ten seconds, refresh your Eureka browser tab.
-You should see a registration entry for the fortune service.</p>
-</li>
-<li>
-<p>Visit <a href="http://localhost:8081/random" class="bare">http://localhost:8081/random</a>. You should see output similar to the following:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fortune_service_output.png" alt="fortune service output">
-</div>
-</div>
+<p>Stream the app logs to the cf cli</p>
 </li>
 </ol>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_fortune_ui">Fortune UI</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Now that our Fortune microservice is running, we&#8217;ll begin development of our second microservice.
-The Fortune UI will serve up a AngularJS single page application that consumes the fortune service.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Create the POJO <code>io.spring.cloud.samples.fortuneteller.ui.Fortune</code>.
-Into that class, paste the following code:</p>
 <div class="listingblock">
 <div class="content">
-<pre>public class Fortune {
-    private Long id;
-    private String text;
+<pre>cf logs hello
+Retrieving logs for app hello in org EMEA / space dflick-dev as dflick@pivotal.io...
 
-    public Fortune() {
-    }
-
-    public Fortune(Long id, String text) {
-        this.id = id;
-        this.text = text;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-}</pre>
+   2019-02-19T18:45:42.82+0100 [RTR/8] OUT hello-talkative-cat.cfapps.io - [2019-02-19T17:45:42.805+0000] "GET / HTTP/1.1" 200 0 12 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36" "10.10.2.132:15612" "10.10.149.32:61232" x_forwarded_for:"77.4.95.59, 10.10.2.132" x_forwarded_proto:"https" vcap_request_id:"7ba8d176-455f-4e90-55dd-0e07dbe6de1e" response_time:0.015656715 app_id:"87bee6e7-b632-4b8a-9ff3-09aa197dc334" app_index:"0" x_b3_traceid:"05b7324107f12047" x_b3_spanid:"05b7324107f12047" x_b3_parentspanid:"-"
+   2019-02-19T18:45:42.82+0100 [RTR/8] OUT</pre>
 </div>
-</div>
-<div class="paragraph">
-<p>We will use this class to unmarshal the response from the fortune service.</p>
-</div>
-</li>
-<li>
-<p>Create the Spring Bean <code>io.spring.cloud.samples.fortuneteller.ui.FortuneProperties</code>. Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@ConfigurationProperties(prefix = "fortune")
-@RefreshScope
-public class FortuneProperties {
-
-	private String fallbackFortune = "Your future is unclear.";
-
-	public String getFallbackFortune() {
-		return fallbackFortune;
-	}
-
-	public void setFallbackFortune(String fallbackFortune) {
-		this.fallbackFortune = fallbackFortune;
-	}
-
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create the Spring Bean <code>io.spring.cloud.samples.fortuneteller.ui.FortuneService</code>.
-Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@Service
-@EnableConfigurationProperties(FortuneProperties.class)
-public class FortuneService {
-
-    @Autowired
-    FortuneProperties fortuneProperties;
-
-    @Autowired
-    @LoadBalanced
-    RestTemplate restTemplate;
-
-    @HystrixCommand(fallbackMethod = "fallbackFortune")
-    public Fortune randomFortune() {
-        return restTemplate.getForObject("http://fortunes/random", Fortune.class);
-    }
-
-    private Fortune fallbackFortune() {
-        return new Fortune(42L, fortuneProperties.getFallbackFortune());
-    }
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
-</div>
-<div class="paragraph">
-<p>This class is our integration point with the fortune service.
-It uses a special <code>RestTemplate</code> bean that integrates with Ribbon from Netflix OSS.
-The argument passed to <code>getForObject</code>, <code>http://fortunes/random</code>, will be resolved by Ribbon to the actual address of the fortune service.
-This method is also protected by a Hystrix circuit breaker using the <code>@HystrixCommand</code> annotation.
-If the circuit is tripped to open (due to an unhealthy fortune service), the <code>fallbackFortune</code> method will return a dummy response.</p>
-</div>
-</li>
-<li>
-<p>Create a Spring MVC Controller class, <code>io.spring.cloud.samples.fortuneteller.ui.UiController</code>.
-Into that class, paste the following code:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@RestController
-public class UiController {
-
-    @Autowired
-    FortuneService service;
-
-    @RequestMapping("/random")
-    public Fortune randomFortune() {
-        return service.randomFortune();
-    }
-}</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
-</div>
-<div class="paragraph">
-<p>This class provides the REST endpoint that will be consumed by our AngularJS UI.</p>
-</div>
-</li>
-<li>
-<p>Add <code>@EnableCircuitBreaker</code> (to switch on Hystrix circuit breakers) and <code>@EnableDiscoveryClient</code> (to switch on Eureka registration) annotations to <code>io.spring.cloud.samples.fortuneteller.ui.Application</code>.</p>
-</li>
-<li>
-<p>Also add the following code to <code>io.spring.cloud.samples.fortuneteller.ui.Application</code> to instruct Spring Cloud Netflix to create a load-balanced <code>RestTemplate</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@Bean
-@LoadBalanced
-public RestTemplate restTemplate() {
-  return new RestTemplate();
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Paste the following configuration properties into the file <code>src/main/resources/bootstrap.yml</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>spring:
-  application:
-    name: ui</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This configuration specifies the name of the application, which will be used to register the service in Eureka.</p>
-</div>
-</li>
-<li>
-<p>Paste the following configuration properties into the file <code>src/main/resources/application.yml</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>ribbon:
-  isSecure: false
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Build the application:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ ./mvnw package</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Run the application:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ java -jar fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar</pre>
-</div>
-</div>
-</li>
-<li>
-<p>After the service has been running for ten seconds, refresh your Eureka browser tab.
-You should see a registration entry for the Fortune UI.</p>
-</li>
-<li>
-<p>Visit <a href="http://localhost:8080" class="bare">http://localhost:8080</a>. You should see output similar to the following:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fortunes-ui.png" alt="fortunes ui" width="50%">
-</div>
-</div>
-</li>
-</ol>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 17:28:44 +0100
+Last updated 2019-02-19 18:46:40 +0100
 </div>
 </div>
 </body>

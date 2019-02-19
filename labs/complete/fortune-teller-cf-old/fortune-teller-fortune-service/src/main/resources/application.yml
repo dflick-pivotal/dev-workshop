@@ -1,8 +1,0 @@
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-
-security:
-  basic:
-    enabled: false

@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
-<title>Lab 06 - Getting Started with Spring Cloud Stream</title>
+<title>Lab 6 - Deploying Cloud Native Architectures to Cloud Foundry</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -432,373 +432,102 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1>Lab 06 - Getting Started with Spring Cloud Stream</h1>
+<h1>Lab 6 - Deploying Cloud Native Architectures to Cloud Foundry</h1>
 </div>
 <div id="content">
 <div id="preamble">
 <div class="sectionbody">
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-More info on Spring Cloud Stream can be found at <a href="https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html" class="bare">https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html</a>
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p><em>A completed version of this lab is found at <code>$COURSE_HOME/labs/complete/fortune-teller-cf</code>.</em></p>
 </div>
 <div class="paragraph">
-<p>This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (<a href="http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/" class="bare">http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/</a>). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.</p>
+<p>Cloud Foundry is an open source platform for running cloud native application architectures. It operates under the tenants of the Cloud Foundry haiku:</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<div class="title">Note</div>
-</td>
-<td class="content">
-The completed code for this lab can be found at <code>$COURSE_HOME/labs/complete/stream</code>.
-</td>
-</tr>
-</table>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_create_sink_and_source_project">Create sink and source project</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>In your browser, visit <a href="http://start.spring.io" class="bare">http://start.spring.io</a>.</p>
-</li>
-<li>
-<p>Fill out the <strong>Project metadata</strong> fields for the sensor data source app as follows:</p>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Group</dt>
-<dd>
-<p><code>io.spring.pivotal</code></p>
-</dd>
-<dt class="hdlist1">Artifact</dt>
-<dd>
-<p><code>sensor-source-spring-cloud-stream</code></p>
-</dd>
-<dt class="hdlist1">Name</dt>
-<dd>
-<p><code>sensor-source-spring-cloud-stream</code></p>
-</dd>
-<dt class="hdlist1">Description</dt>
-<dd>
-<p><code>Sensor Data Spring Cloud Stream</code></p>
-</dd>
-<dt class="hdlist1">Package Name</dt>
-<dd>
-<p><code>io.spring.pivotal.sensor</code></p>
-</dd>
-<dt class="hdlist1">Type</dt>
-<dd>
-<p>Maven Project</p>
-</dd>
-<dt class="hdlist1">Packaging</dt>
-<dd>
-<p>Jar</p>
-</dd>
-<dt class="hdlist1">Java Version</dt>
-<dd>
-<p>1.8</p>
-</dd>
-<dt class="hdlist1">Language</dt>
-<dd>
-<p>Java
-Spring Boot Version 1.5.7</p>
-</dd>
-</dl>
-</div>
-</li>
-<li>
-<p>In the <strong>Project dependencies</strong> section, check the following:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Stream Rabbit, Web</p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Click the <strong>Generate Project</strong> button. Your browser will download a zip file.
-Unpack that zip file at <code>$COURSE_HOME/labs/initial/stream</code>.</p>
-</li>
-<li>
-<p>Import the project&#8217;s <code>pom.xml</code> into your editor/IDE of choice.</p>
-</li>
-<li>
-<p>Fill out the <strong>Project metadata</strong> fields for the source sensor data sink app as follows:</p>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">Group</dt>
-<dd>
-<p><code>io.spring.pivotal</code></p>
-</dd>
-<dt class="hdlist1">Artifact</dt>
-<dd>
-<p><code>sensor-sink-spring-cloud-stream</code></p>
-</dd>
-<dt class="hdlist1">Name</dt>
-<dd>
-<p><code>sensor-sink-spring-cloud-stream</code></p>
-</dd>
-<dt class="hdlist1">Description</dt>
-<dd>
-<p><code>Sensor Data Spring Cloud Stream</code></p>
-</dd>
-<dt class="hdlist1">Package Name</dt>
-<dd>
-<p><code>io.spring.pivotal.sensor</code></p>
-</dd>
-<dt class="hdlist1">Type</dt>
-<dd>
-<p>Maven Project</p>
-</dd>
-<dt class="hdlist1">Packaging</dt>
-<dd>
-<p>Jar</p>
-</dd>
-<dt class="hdlist1">Java Version</dt>
-<dd>
-<p>1.8</p>
-</dd>
-<dt class="hdlist1">Language</dt>
-<dd>
-<p>Java
-Spring Boot Version 1.5.7</p>
-</dd>
-</dl>
-</div>
-</li>
-<li>
-<p>In the <strong>Project dependencies</strong> section, check the following:</p>
-<div class="ulist">
-<ul>
-<li>
-<p>Stream Rabbit, Web</p>
-</li>
-</ul>
-</div>
-</li>
-<li>
-<p>Click the <strong>Generate Project</strong> button. Your browser will download a zip file.
-Unpack that zip file at <code>$COURSE_HOME/labs/initial/stream</code>.</p>
-</li>
-<li>
-<p>Import the project&#8217;s <code>pom.xml</code> into your editor/IDE of choice.</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_create_sensor_data_source_application">Create sensor data source application</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Add a 'SensorData' class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package io.spring.pivotal.sensor;
-
-public class SensorData {
-
-	private int sensorId;
-
-	private double temperature;
-
-	public SensorData() {
-	}
-
-	public SensorData(int sensorId, double temperature) {
-		this.sensorId = sensorId;
-		this.temperature = temperature;
-	}
-
-	public int getSensorId() {
-		return sensorId;
-	}
-
-	public double getTemperature() {
-		return temperature;
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Add a 'SensorDataSource' class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package io.spring.pivotal.sensor;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.messaging.Source;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.MessageChannel;
-
-@EnableBinding(Source.class)
-public class SensorDataSource {
-
-    @Autowired
-	private MessageChannel output;
-
-	public void ingest(SensorData sensorData)
-	{
-		output.send(MessageBuilder.withPayload(sensorData).build());
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Add a 'SensorDataController' class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package io.spring.pivotal.sensor;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController
-public class SensorDataController {
-
-	@Autowired
-	SensorDataSource source;
-
-	@RequestMapping(value = "/ingest", method = RequestMethod.POST, headers = "Accept=application/json")
-	public SensorData ingest(@RequestBody SensorData sensorData)
-	{
-	    source.ingest(sensorData);
-		return sensorData;
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Add the following properties to your 'application.properties' file.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">spring.cloud.stream.bindings.output.destination=sensor-data
-spring.cloud.stream.bindings.output.content-type=application/json</code></pre>
-</div>
-</div>
-</li>
-</ol>
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Here is my code.</p>
 </div>
 <div class="paragraph">
-<p><strong>Congratulations!</strong>
-You&#8217;ve just completed your first Spring Cloud Stream Source application.</p>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_create_sensor_data_sink_application">Create sensor data sink application</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Add a 'SensorData' class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package io.spring.pivotal.sensor;
-
-public class SensorData {
-
-	private int sensorId;
-
-	private double temperature;
-
-	public SensorData() {
-	}
-
-	public SensorData(int sensorId, double temperature) {
-		this.sensorId = sensorId;
-		this.temperature = temperature;
-	}
-
-	public int getSensorId() {
-		return sensorId;
-	}
-
-	public double getTemperature() {
-		return temperature;
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Add a 'SensorDataSink' class</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">package io.spring.pivotal.sensor;
-
-import org.springframework.cloud.stream.annotation.EnableBinding;
-import org.springframework.cloud.stream.messaging.Sink;
-import org.springframework.integration.annotation.ServiceActivator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-@EnableBinding(Sink.class)
-public class SensorDataSink {
-	private static Logger logger = LoggerFactory.getLogger(SensorDataSink.class);
-
-	@ServiceActivator(inputChannel=Sink.INPUT)
-	public void ingest(Object payload) {
-		logger.info("Received: " + payload);
-	}
-}</code></pre>
-</div>
-</div>
-</li>
-<li>
-<p>Add the following properties to your 'application.properties' file.</p>
-<div class="listingblock">
-<div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">server.port=8081
-spring.cloud.stream.bindings.input.destination=sensor-data
-spring.cloud.stream.bindings.input.content-type=application/json
-spring.cloud.stream.bindings.input.group=sensor-data</code></pre>
-</div>
-</div>
-</li>
-</ol>
+<p>Run it on the cloud for me.</p>
 </div>
 <div class="paragraph">
-<p><strong>Congratulations!</strong>
-You&#8217;ve just completed your first Spring Cloud Stream sink application.</p>
+<p>I do not care how.</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Cloud Foundry does the work of analyzing your application and determining its runtime needs through a process called <code>cf push</code>, which uploads your code and launches a <em>buildpack</em> to create a runtime package including things like a JDK. This package, called a <em>droplet</em> is launched in a Linux container using the same underlying technology as Docker. Cloud Foundry also handles <em>provisioning</em> of and <em>binding</em> your application to marketplace services like databases, as well as other non-functional concerns like aggregating and providing access to application metrics and logs.</p>
+</div>
+<div class="paragraph">
+<p>In this lab, we&#8217;ll leverage <em>Spring Cloud Services (SCS)</em>, which is a Cloud Foundry marketplace version of the same services you ran on your laptop. These services are made available via <em>Pivotal Web Services (PWS)</em>, which is a SaaS version of Cloud Foundry operated by Pivotal.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_test_your_application">Test your application</h2>
+<h2 id="_dependency_changes">Dependency Changes</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>we&#8217;ll make a few changes to the dependencies present in your applications. We&#8217;ll be removing the Cloud Bus Kafka and Zipkin dependencies. Also, we&#8217;ll leverage some SCS specific starters. They are a superset of the starters you already used for Spring Cloud OSS, and include features such as opinionated security based on Cloud Foundry service bindings.</p>
+</div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Start RabbitMQ on your local machine</p>
-</li>
-<li>
-<p>Execute the following script</p>
+<p>First, we need to alter the dependency management block of the parent pom, at <code>${COURSE_HOME}/labs/initial/fortune-teller/pom.xml</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre>temperature=0; while true; do { curl -X POST -H "Content-Type: application/json" -d '{"sensorId":"1","temperature":"'"$temperature"'"}' localhost:8080/ingest; sleep 1; ((temperature++)); printf "\n";} done</pre>
+<pre>&lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-cloud-services-dependencies&lt;/artifactId&gt;
+      &lt;version&gt;2.0.1.RELEASE&lt;/version&gt;
+      &lt;type&gt;pom&lt;/type&gt;
+      &lt;scope&gt;import&lt;/scope&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;
+      &lt;version&gt;Finchley.RELEASE&lt;/version&gt;
+      &lt;type&gt;pom&lt;/type&gt;
+      &lt;scope&gt;import&lt;/scope&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>In <code>fortune-teller-fortune-service/pom.xml</code>, replace all of the dependencies matching the pattern <code>spring-cloud-starter-*</code> with these SCS dependencies:</p>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;dependency&gt;
+  &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-services-starter-config-client&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-services-starter-service-registry&lt;/artifactId&gt;
+&lt;/dependency&gt;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>In <code>fortune-teller-ui/pom.xml</code>, replace all of the dependencies matching the pattern <code>spring-cloud-starter-*</code> with these SCS dependencies:</p>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;dependency&gt;
+  &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-services-starter-config-client&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-services-starter-service-registry&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.pivotal.spring.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-services-starter-circuit-breaker&lt;/artifactId&gt;
+&lt;/dependency&gt;</pre>
 </div>
 </div>
 </li>
@@ -807,120 +536,484 @@ You&#8217;ve just completed your first Spring Cloud Stream sink application.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_push_your_application_to_pcf">Push your application to PCF</h2>
+<h2 id="_build_and_push">Build and Push!</h2>
 <div class="sectionbody">
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Create a RabbitMQ service</p>
+<p>Using Maven, build and package the application:</p>
 <div class="listingblock">
 <div class="content">
-<pre>$ cf create-service cloudamqp lemur scs-rabbit</pre>
+<pre>$ ./mvnw package</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Create a manifest.yml for your sink application in your sink project</p>
+<p>Login to Pivotal Cloud Foundry using the Cloud Foundry CLI, and target the space you were assigned in the class spreadsheet:</p>
 <div class="listingblock">
 <div class="content">
-<pre>---
-applications:
-- name: sink
-  memory: 512M
-  instances: 1
-  host: source-${random-word}
-  path: target/sensor-sink-spring-cloud-stream-0.0.1-SNAPSHOT.jar
-  services: [scs-rabbit]</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Create a manifest.yml for your source application in your source project</p>
-<div class="listingblock">
-<div class="content">
-<pre>---
-applications:
-- name: source
-  memory: 512M
-  instances: 1
-  host: source-${random-word}
-  path: target/sensor-source-spring-cloud-stream-0.0.1-SNAPSHOT.jar
-  services: [scs-rabbit]</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Push both applications</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ cf push
-Using manifest file
+<pre>cf login -a api.run.pivotal.io
+API endpoint: api.run.pivotal.io
 
-...
+Email&gt; dflick@pivotal.io
 
-Showing health and status for app source in org pnagel-workshop / space dieter as dflick@pivotal.io...
+Password&gt;
+Authenticating...
 OK
 
-requested state: started
-instances: 1/1
-usage: 512M x 1 instances
-urls: source-unretouched-leucopenia.cfapps.io
-last uploaded: Mon Aug 8 14:47:02 UTC 2016
-stack: cflinuxfs2
-buildpack: java-buildpack=v3.8.1-offline-https://github.com/cloudfoundry/java-buildpack.git#29c79f2 java-main open-jdk-like-jre=1.8.0_91-unlimited-crypto open-jdk-like-memory-calculator=2.0.2_RELEASE spring-auto-reconfiguration=1.10.0_RELEASE
+Select an org (or press enter to skip):
+1. dieter-org
+2. EMEA
 
-     state     since                    cpu      memory         disk           details
-#0   running   2016-08-08 04:47:46 PM   217.4%   305M of 512M   142.2M of 1G----</pre>
+Org&gt; 2
+Targeted org EMEA
+
+Select a space (or press enter to skip):
+There are too many options to display, please type in the name.
+
+Space&gt; dflick-dev
+Targeted space dflick-dev
+
+
+
+API endpoint:   https://api.run.pivotal.io (API version: 2.131.0)
+User:           dflick@pivotal.io
+Org:            EMEA
+Space:          dflick-dev</pre>
 </div>
 </div>
+</li>
+<li>
+<p>Next, we&#8217;ll use a script to create instances of each of the marketplace services that we need. Take a look at <code>scripts/create_services.sh</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>#!/usr/bin/env bash
+
+cf cs p.mysql db-small fortunes-db
+echo "configure your repo !!!!!"
+#cf cs p-config-server standard config-server -c '{"skipSslValidation": true, "git": { "uri": "https://github.com/spring-cloud-services-samples/fortune-teller", "searchPaths": "configuration" } }'
+cf cs p-config-server standard config-server -c '{"git": { "uri": "https://github.com/dflick-pivotal/configrepo" } }'
+cf cs p-service-registry standard service-registry
+cf cs p-circuit-breaker-dashboard standard circuit-breaker</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This script is creating each of the following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A MySQL database</p>
+</li>
+<li>
+<p>A Config Server, pointing to a Git repository (if you like, point at your own fork by editing the script!)</p>
+</li>
+<li>
+<p>A Service Registry, based on Eureka</p>
+</li>
+<li>
+<p>A Circuit Breaker Dashboard, based on the Hystrix Dashboard</p>
+<div class="paragraph">
+<p>The SCS services are provisioned asynchronously, so you&#8217;ll need to check on their status before continuing.</p>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Execute the script:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ scripts/create_services.sh
+Creating service instance fortunes-db in org EMEA / space dflick-dev as dflick@pivotal.io...
+OK
+
+Creating service instance fortunes-config-server in org EMEA / space dflick-dev as dflick@pivotal.io...
+OK
+
+Create in progress. Use 'cf services' or 'cf service fortunes-config-server' to check operation status.
+
+Creating service instance fortunes-service-registry in org EMEA / space dflick-dev as dflick@pivotal.io...
+OK
+
+Create in progress. Use 'cf services' or 'cf service fortunes-service-registry' to check operation status.
+
+Creating service instance fortunes-circuit-breaker-dashboard in org EMEA / space dflick-dev as dflick@pivotal.io...
+OK
+
+Create in progress. Use 'cf services' or 'cf service fortunes-circuit-breaker-dashboard' to check operation status.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then check the status of all services:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ cf services
+Getting services in org EMEA / space dflick-dev as dflick@pivotal.io...
+
+name                                 service                       plan    bound apps   last operation
+fortunes-circuit-breaker-dashboard   p-circuit-breaker-dashboard   trial                create succeeded
+fortunes-config-server               p-config-server               trial                create succeeded
+fortunes-db                          cleardb                       spark                create succeeded
+fortunes-service-registry            p-service-registry            trial                create in progress</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You&#8217;ll want to keep executing this command (e.g. by using the UNIX command <code>watch</code>) until all of the services have the status <code>create succeeded</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ cf s
+Getting services in org EMEA / space dflick-dev as dflick@pivotal.io...
+
+name                                 service                       plan    bound apps   last operation
+fortunes-circuit-breaker-dashboard   p-circuit-breaker-dashboard   trial                create succeeded
+fortunes-config-server               p-config-server               trial                create succeeded
+fortunes-db                          cleardb                       spark                create succeeded
+fortunes-service-registry            p-service-registry            trial                create succeeded</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Next we&#8217;ll use <code>cf push</code> to push the <code>fortune-teller</code> applications. Take a look at <code>fortune-teller/manifest-pcf.yml</code> (look for numbered annotations in the listing):</p>
+<div class="listingblock">
+<div class="content">
+<pre>---
+applications:
+- name: fortune-service <b class="conum">(1)</b>
+  memory: 1024M <b class="conum">(2)</b>
+  random-route: true <b class="conum">(3)</b>
+  path: fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar <b class="conum">(4)</b>
+  services: <b class="conum">(5)</b>
+  - fortunes-db
+  - config-server
+  - service-registry
+  #env:
+    # Replace with API URI of target PCF environment
+    #CF_TARGET: https://api.yourpcfenvironment.local
+- name: fortune-ui
+  memory: 1024M
+  random-route: true
+  path: fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
+  services:
+  - config-server
+  - service-registry
+  - circuit-breaker
+  #env: <b class="conum">(6)</b>
+    # Replace with API URI of target PCF environment
+    #CF_TARGET: https://api.yourpcfenvironment.local</pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Gives the application a name unique to your space.</p>
+</li>
+<li>
+<p>Sets the maximum available memory in the Linux container allocated to your application.</p>
+</li>
+<li>
+<p>Give the application a hostname. The hostname must be unique to the domain you&#8217;re using (in this case, <code>cfapps.io</code>), so <code>${random-word}</code> will attach a randomly generated token from a dictionary.</p>
+</li>
+<li>
+<p>Indicates the application artifact (in this case, your Spring Boot jar file) to be uploaded.</p>
+</li>
+<li>
+<p>Indicates the services that should be bound to your application.</p>
+</li>
+<li>
+<p>Indicates environment variables to be set in the environment of your running application process.</p>
 </li>
 </ol>
 </div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_test_your_application_on_pcf">Test your application on PCF</h2>
-<div class="sectionbody">
-<div class="olist arabic">
-<ol class="arabic">
+</li>
 <li>
-<p>Collect sink application logs</p>
+<p>Push the applications. This command will automatically pickup a <code>manifest.yml</code> file if present in the current directory (look for numbered annotations in the listing):</p>
 <div class="listingblock">
 <div class="content">
-<pre>$ cf logs sink</pre>
+<pre>cf push -f manifest-pws.yml <b class="conum">(1)</b>
+Pushing from manifest to org EMEA / space dflick-dev as dflick@pivotal.io...
+Using manifest file manifest-pws.yml
+Getting app info...
+Updating app with these attributes...
+  name:                fortunes
+  path:                /Users/dflick/Documents/development/workspaces/workspace-dev-workshop/dev-workshop/labs/complete/fortune-teller-cf/fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar
+  command:             JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR -XX:ActiveProcessorCount=$(nproc) -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" &amp;&amp; CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT -loadedClasses=24843 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") &amp;&amp; echo JVM Memory Configuration: $CALCULATED_MEMORY &amp;&amp; JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" &amp;&amp; MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
+  disk quota:          1G
+  health check type:   port
+  instances:           1
+  memory:              1G
+  stack:               cflinuxfs3
+  services:
+    fortunes-config-server
+    fortunes-db
+    fortunes-service-registry
+  routes:
+    fortunes-agile-swan.cfapps.io
+
+Creating app with these attributes...
++ name:        fortune-ui
+  path:        /Users/dflick/Documents/development/workspaces/workspace-dev-workshop/dev-workshop/labs/complete/fortune-teller-cf/fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
++ instances:   1
++ memory:      1G
+  services:
++   fortunes-circuit-breaker-dashboard <b class="conum">(2)</b>
++   fortunes-config-server
++   fortunes-service-registry
+  routes:
++   fortune-ui-shy-okapi.cfapps.io <b class="conum">(3)</b>
+
+Updating app fortunes...
+Mapping routes...
+Comparing local files to remote cache...
+Packaging files to upload...
+Uploading files... <b class="conum">(4)</b>
+ 952.69 KiB / 952.69 KiB [================================================================================================================] 100.00% 5s
+
+Waiting for API to complete processing files...
+
+Stopping app...
+
+Staging app and tracing logs...
+   Downloading dotnet_core_buildpack_beta...
+   Downloading staticfile_buildpack...
+   Downloading java_buildpack...
+   Downloading dotnet_core_buildpack...
+   Downloading nodejs_buildpack...
+   Downloaded dotnet_core_buildpack_beta
+   Downloading go_buildpack...
+   Downloaded dotnet_core_buildpack
+   Downloading python_buildpack...
+   Downloaded go_buildpack
+   Downloading php_buildpack...
+   Downloaded nodejs_buildpack
+   Downloading binary_buildpack...
+   Downloaded python_buildpack
+   Downloading ruby_buildpack...
+   Downloaded binary_buildpack
+   Downloaded staticfile_buildpack
+   Downloaded php_buildpack
+   Downloaded ruby_buildpack
+   Downloaded java_buildpack
+   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 creating container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
+   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 successfully created container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
+   Downloading build artifacts cache...
+   Downloading app package...
+   Downloaded build artifacts cache (132B)
+   Downloaded app package (50.1M)
+   -----&gt; Java Buildpack v4.17.2 (offline) | https://github.com/cloudfoundry/java-buildpack.git#47e68da <b class="conum">(5)</b>
+   -----&gt; Downloading Jvmkill Agent 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/jvmkill/bionic/x86_64/jvmkill-1.16.0_RELEASE.so (found in cache)
+   -----&gt; Downloading Open Jdk JRE 1.8.0_202 from https://java-buildpack.cloudfoundry.org/openjdk/bionic/x86_64/openjdk-1.8.0_202.tar.gz (found in cache)
+          Expanding Open Jdk JRE to .java-buildpack/open_jdk_jre (1.9s)
+          JVM DNS caching disabled in lieu of BOSH DNS caching
+   -----&gt; Downloading Open JDK Like Memory Calculator 3.13.0_RELEASE from https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-3.13.0_RELEASE.tar.gz (found in cache)
+          Loaded Classes: 23127, Threads: 250 <b class="conum">(6)</b>
+   -----&gt; Downloading Client Certificate Mapper 1.8.0_RELEASE from https://java-buildpack.cloudfoundry.org/client-certificate-mapper/client-certificate-mapper-1.8.0_RELEASE.jar (found in cache)
+   -----&gt; Downloading Container Security Provider 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/container-security-provider/container-security-provider-1.16.0_RELEASE.jar (found in cache)
+   -----&gt; Downloading Spring Auto Reconfiguration 2.5.0_RELEASE from https://java-buildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-2.5.0_RELEASE.jar (found in cache)
+   Exit status 0
+   Uploading droplet, build artifacts cache... <b class="conum">(4)</b>
+   Uploading droplet...
+   Uploading build artifacts cache...
+   Uploaded build artifacts cache (132B)
+   Uploaded droplet (97.3M) <b class="conum">(7)</b>
+   Uploading complete
+   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 stopping instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
+   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 destroying container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3 <b class="conum">(8)</b>
+   Cell f6e92664-f6c9-41d8-8359-96d91b272fd2 successfully destroyed container for instance 2646e3dc-dd28-4572-a2f6-3733ce71bbc3
+
+Waiting for app to start... <b class="conum">(9)</b>
+
+name:              fortunes
+requested state:   started
+routes:            fortunes-agile-swan.cfapps.io
+last uploaded:     Tue 19 Feb 15:11:56 CET 2019
+stack:             cflinuxfs3
+buildpacks:        client-certificate-mapper=1.8.0_RELEASE container-security-provider=1.16.0_RELEASE
+                   java-buildpack=v4.17.2-offline-https://github.com/cloudfoundry/java-buildpack.git#47e68da java-main java-opts java-security
+                   jvmkill-agent=1.16.0_RELEASE open-jd...
+
+type:            web
+instances:       1/1
+memory usage:    1024M
+start command:   JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR
+                 -XX:ActiveProcessorCount=$(nproc)
+                 -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext
+                 -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" &amp;&amp;
+                 CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT
+                 -loadedClasses=23906 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") &amp;&amp; echo JVM Memory Configuration:
+                 $CALCULATED_MEMORY &amp;&amp; JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" &amp;&amp; MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec
+                 $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
+     state     since                  cpu      memory         disk           details
+#0   running   2019-02-19T14:12:42Z   202.3%   243.5M of 1G   182.8M of 1G <b class="conum">(10)</b>
+
+Creating app fortune-ui...
+Mapping routes...
+Binding services...
+Comparing local files to remote cache...
+Packaging files to upload...
+Uploading files...
+ 1.16 MiB / 1.16 MiB [====================================================================================================================] 100.00% 6s
+
+Waiting for API to complete processing files...
+
+Staging app and tracing logs...
+   Downloading dotnet_core_buildpack_beta...
+   Downloading nodejs_buildpack...
+   Downloading python_buildpack...
+   Downloading dotnet_core_buildpack...
+   Downloading staticfile_buildpack...
+   Downloaded nodejs_buildpack
+   Downloading java_buildpack...
+   Downloaded python_buildpack
+   Downloading ruby_buildpack...
+   Downloaded staticfile_buildpack
+   Downloading binary_buildpack...
+   Downloaded dotnet_core_buildpack_beta
+   Downloading php_buildpack...
+   Downloaded dotnet_core_buildpack
+   Downloading go_buildpack...
+   Downloaded ruby_buildpack
+   Downloaded php_buildpack
+   Downloaded java_buildpack
+   Downloaded go_buildpack
+   Downloaded binary_buildpack
+   Cell 203cbc88-5541-42bb-9365-604cb903cbfb creating container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
+   Cell 203cbc88-5541-42bb-9365-604cb903cbfb successfully created container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
+   Downloading app package...
+   Downloaded app package (44.2M)
+   -----&gt; Java Buildpack v4.17.2 (offline) | https://github.com/cloudfoundry/java-buildpack.git#47e68da
+   -----&gt; Downloading Jvmkill Agent 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/jvmkill/bionic/x86_64/jvmkill-1.16.0_RELEASE.so (found in cache)
+   -----&gt; Downloading Open Jdk JRE 1.8.0_202 from https://java-buildpack.cloudfoundry.org/openjdk/bionic/x86_64/openjdk-1.8.0_202.tar.gz (found in cache)
+          Expanding Open Jdk JRE to .java-buildpack/open_jdk_jre (1.2s)
+          JVM DNS caching disabled in lieu of BOSH DNS caching
+   -----&gt; Downloading Open JDK Like Memory Calculator 3.13.0_RELEASE from https://java-buildpack.cloudfoundry.org/memory-calculator/bionic/x86_64/memory-calculator-3.13.0_RELEASE.tar.gz (found in cache)
+          Loaded Classes: 21679, Threads: 250
+   -----&gt; Downloading Client Certificate Mapper 1.8.0_RELEASE from https://java-buildpack.cloudfoundry.org/client-certificate-mapper/client-certificate-mapper-1.8.0_RELEASE.jar (found in cache)
+   -----&gt; Downloading Container Security Provider 1.16.0_RELEASE from https://java-buildpack.cloudfoundry.org/container-security-provider/container-security-provider-1.16.0_RELEASE.jar (found in cache)
+   -----&gt; Downloading Spring Auto Reconfiguration 2.5.0_RELEASE from https://java-buildpack.cloudfoundry.org/auto-reconfiguration/auto-reconfiguration-2.5.0_RELEASE.jar (found in cache)
+   Exit status 0
+   Uploading droplet, build artifacts cache...
+   Uploading droplet...
+   Uploading build artifacts cache...
+   Uploaded build artifacts cache (128B)
+   Uploaded droplet (91.3M)
+   Uploading complete
+   Cell 203cbc88-5541-42bb-9365-604cb903cbfb stopping instance d29dd459-4660-493a-a652-e7d3a9bbabd2
+   Cell 203cbc88-5541-42bb-9365-604cb903cbfb destroying container for instance d29dd459-4660-493a-a652-e7d3a9bbabd2
+
+Waiting for app to start...
+
+name:              fortune-ui
+requested state:   started
+routes:            fortune-ui-shy-okapi.cfapps.io
+last uploaded:     Tue 19 Feb 15:13:35 CET 2019
+stack:             cflinuxfs3
+buildpacks:        client-certificate-mapper=1.8.0_RELEASE container-security-provider=1.16.0_RELEASE
+                   java-buildpack=v4.17.2-offline-https://github.com/cloudfoundry/java-buildpack.git#47e68da java-main java-opts java-security
+                   jvmkill-agent=1.16.0_RELEASE open-jd...
+
+type:            web
+instances:       1/1
+memory usage:    1024M
+start command:   JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvmkill-1.16.0_RELEASE=printHeapHistogram=1 -Djava.io.tmpdir=$TMPDIR
+                 -XX:ActiveProcessorCount=$(nproc)
+                 -Djava.ext.dirs=$PWD/.java-buildpack/container_security_provider:$PWD/.java-buildpack/open_jdk_jre/lib/ext
+                 -Djava.security.properties=$PWD/.java-buildpack/java_security/java.security $JAVA_OPTS" &amp;&amp;
+                 CALCULATED_MEMORY=$($PWD/.java-buildpack/open_jdk_jre/bin/java-buildpack-memory-calculator-3.13.0_RELEASE -totMemory=$MEMORY_LIMIT
+                 -loadedClasses=22458 -poolType=metaspace -stackThreads=250 -vmOptions="$JAVA_OPTS") &amp;&amp; echo JVM Memory Configuration:
+                 $CALCULATED_MEMORY &amp;&amp; JAVA_OPTS="$JAVA_OPTS $CALCULATED_MEMORY" &amp;&amp; MALLOC_ARENA_MAX=2 SERVER_PORT=$PORT eval exec
+                 $PWD/.java-buildpack/open_jdk_jre/bin/java $JAVA_OPTS -cp $PWD/. org.springframework.boot.loader.JarLauncher
+     state     since                  cpu      memory         disk           details
+#0   running   2019-02-19T14:14:19Z   262.5%   260.6M of 1G   176.5M of 1G <b class="conum">(11)</b></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>app is pushed and created via an API call to Cloud Foundry.</p>
+</li>
+<li>
+<p>Each of the marketplace services created by the script is bound to the application.</p>
+</li>
+<li>
+<p>route is created via an API call to Cloud Foundry and bound to the application. This means any accesses to this route via HTTP will be routed to instances of this application.</p>
+</li>
+<li>
+<p>The application code is uploaded to the Cloud Foundry blobstore.</p>
+</li>
+<li>
+<p>The staging process is started. Cloud Foundry determines that the Java buildpack should be run on this application and starts it.</p>
+</li>
+<li>
+<p>The Cloud Foundry Java buildpack automatically calculates the JVM memory settings optimal for the chosen maximum memory for the Linux container.</p>
+</li>
+<li>
+<p>The droplet created by running the Java buildpack is uploaded to the Cloud Foundry blobstore.</p>
+</li>
+<li>
+<p>The Linux container used to stage the application is destroyed.</p>
+</li>
+<li>
+<p>A new Linux container is created, and the JVM process is started.</p>
+</li>
+<li>
+<p>When the process becomes healthy, the CLI reports the command used to start the process.</p>
+</li>
+<li>
+<p>The process completes for each application in the manifest.</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>Access <a href="http://console.run.pivotal.io" class="bare">http://console.run.pivotal.io</a> in the browser. You&#8217;ll be redirected to login.</p>
+</li>
+<li>
+<p>Choose your organization and space and you should see your two applications:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/pws_2.png" alt="pws 2">
 </div>
 </div>
 </li>
 <li>
-<p>Execute the following script</p>
-<div class="listingblock">
+<p>Click <strong>Services</strong> and you&#8217;ll see the marketplace service instances created by the script here:</p>
+<div class="imageblock">
 <div class="content">
-<pre>temperature=0; while true; do { curl -X POST -H "Content-Type: application/json" -d '{"sensorId":"1","temperature":"'"$temperature"'"}' source-unretouched-leucopenia.cfapps.io/ingest; sleep 1; ((temperature++)); printf "\n";} done</pre>
+<img src="Common/images/pws_4.png" alt="pws 4">
 </div>
 </div>
 </li>
 <li>
-<p>Scale the sink application</p>
-<div class="listingblock">
+<p>Click <strong>Service Registry</strong> and then click <strong>Manage</strong>. This should open another browser window/tab. You may be challenged for authentication again. Then you&#8217;ll see the Service Registry dashboard, along with the registrations for your two apps:</p>
+<div class="imageblock">
 <div class="content">
-<pre>$ cf scale sink -i 2</pre>
+<img src="Common/images/pws_6.png" alt="pws 6">
 </div>
 </div>
 </li>
 <li>
-<p>Have a look at the sink logs. What and why is this happening?</p>
-<div class="listingblock">
+<p>Return to the <strong>Services</strong> screen, click <strong>Circuit Breaker</strong> and click <strong>Manage</strong> afterwards. Generate some traffic to your <code>fortune-teller-ui</code> application&#8217;s assigned route. You should see usage in the Circuit Breaker Dashboard:</p>
+<div class="imageblock">
 <div class="content">
-<pre>2016-08-08T16:51:59.00+0200 [APP/0]      OUT 2016-08-08 14:51:59.001  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":126.0}
-2016-08-08T16:52:00.27+0200 [APP/1]      OUT 2016-08-08 14:52:00.270  INFO 29 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":127.0}
-2016-08-08T16:52:01.55+0200 [APP/0]      OUT 2016-08-08 14:52:01.553  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":128.0}
-2016-08-08T16:52:02.83+0200 [APP/1]      OUT 2016-08-08 14:52:02.836  INFO 29 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":129.0}
-2016-08-08T16:52:04.11+0200 [APP/0]      OUT 2016-08-08 14:52:04.107  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":130.0}----</pre>
+<img src="Common/images/pws_11.png" alt="pws 11">
 </div>
 </div>
 </li>
 <li>
-<p>Figure out with the help of the spring cloud stream reference - <a href="https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html#consumer-groups" class="bare">https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html#consumer-groups</a></p>
+<p>You can examine the logs for your applications by using the <code>cf logs</code> command:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ cf logs fortunes
+2019-02-19T15:53:15.15+0100 [RTR/0] OUT fortunes-agile-swan.cfapps.io - [2019-02-19T14:53:15.132+0000] "GET /random HTTP/1.1" 200 0 77 "-" "Java/1.8.0_202" "10.10.66.121:52280" "10.10.149.87:61124" x_forwarded_for:"54.224.103.79, 10.10.66.121" x_forwarded_proto:"https" vcap_request_id:"7b10d7f5-4ed4-4b1d-401c-a4c1f471e454" response_time:0.026635207 app_id:"c21b1f8f-cad0-444a-b280-0a9c27d32790" app_index:"0" x_b3_traceid:"edf1e481626eba94" x_b3_spanid:"edf1e481626eba94" x_b3_parentspanid:"-"
+   2019-02-19T15:53:15.15+0100 [RTR/0] OUT
+   2019-02-19T15:53:15.14+0100 [APP/PROC/WEB/0] OUT 2019-02-19 14:53:15.146  INFO 14 --- [nio-8080-exec-6] i.s.c.s.f.f.c.FortuneController          : SR: received call to /random.
+   2019-02-19T15:53:15.15+0100 [APP/PROC/WEB/0] OUT 2019-02-19 14:53:15.154  INFO 14 --- [nio-8080-exec-6] i.s.c.s.f.f.c.FortuneController          : SS: responding to call to /random.
+...</pre>
+</div>
+</div>
 </li>
 </ol>
 </div>
@@ -929,7 +1022,7 @@ buildpack: java-buildpack=v3.8.1-offline-https://github.com/cloudfoundry/java-bu
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-02-27 12:26:50 +0100
+Last updated 2019-02-19 18:53:16 +0100
 </div>
 </div>
 </body>

@@ -1,0 +1,328 @@
+= Lab 07 - Getting Started with Spring Cloud Stream
+
+NOTE: More info on Spring Cloud Stream can be found at https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html
+
+This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.
+
+NOTE: The completed code for this lab can be found at `$COURSE_HOME/labs/complete/stream`.
+
+== Create sink and source project
+
+. In your browser, visit http://start.spring.io.
+
+. Fill out the *Project metadata* fields for the sensor data source app as follows:
++
+Group:: `io.spring.pivotal`
+Artifact:: `sensor-source-spring-cloud-stream`
+Name:: `sensor-source-spring-cloud-stream`
+Description:: `Sensor Data Spring Cloud Stream`
+Package Name:: `io.spring.pivotal.sensor`
+Type:: Maven Project
+Packaging:: Jar
+Java Version:: 1.8
+Language:: Java
+Spring Boot Version 1.5.7
+
+. In the *Project dependencies* section, check the following:
++
+* Stream Rabbit, Web
+
+. Click the *Generate Project* button. Your browser will download a zip file.
+Unpack that zip file at `$COURSE_HOME/labs/initial/stream`.
+
+. Import the project's `pom.xml` into your editor/IDE of choice.
+
+. Fill out the *Project metadata* fields for the source sensor data sink app as follows:
++
+Group:: `io.spring.pivotal`
+Artifact:: `sensor-sink-spring-cloud-stream`
+Name:: `sensor-sink-spring-cloud-stream`
+Description:: `Sensor Data Spring Cloud Stream`
+Package Name:: `io.spring.pivotal.sensor`
+Type:: Maven Project
+Packaging:: Jar
+Java Version:: 1.8
+Language:: Java
+Spring Boot Version 1.5.7
+
+. In the *Project dependencies* section, check the following:
++
+* Stream Rabbit, Web
+
+. Click the *Generate Project* button. Your browser will download a zip file.
+Unpack that zip file at `$COURSE_HOME/labs/initial/stream`.
+
+. Import the project's `pom.xml` into your editor/IDE of choice.
+
+== Create sensor data source application
+
+. Add a 'SensorData' class
++
+[source,java]
+----
+package io.spring.pivotal.sensor;
+
+public class SensorData {
+
+	private int sensorId;
+
+	private double temperature;
+
+	public SensorData() {
+	}
+
+	public SensorData(int sensorId, double temperature) {
+		this.sensorId = sensorId;
+		this.temperature = temperature;
+	}
+
+	public int getSensorId() {
+		return sensorId;
+	}
+
+	public double getTemperature() {
+		return temperature;
+	}
+}
+----
+
+. Add a 'SensorDataSource' class
++
+[source,java]
+----
+package io.spring.pivotal.sensor;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.messaging.Source;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.MessageChannel;
+
+@EnableBinding(Source.class)
+public class SensorDataSource {
+
+    @Autowired
+	private MessageChannel output;
+
+	public void ingest(SensorData sensorData)
+	{
+		output.send(MessageBuilder.withPayload(sensorData).build());
+	}
+}
+----
+
+. Add a 'SensorDataController' class
++
+[source,java]
+----
+package io.spring.pivotal.sensor;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class SensorDataController {
+
+	@Autowired
+	SensorDataSource source;
+
+	@RequestMapping(value = "/ingest", method = RequestMethod.POST, headers = "Accept=application/json")
+	public SensorData ingest(@RequestBody SensorData sensorData)
+	{
+	    source.ingest(sensorData);
+		return sensorData;
+	}
+}
+----
+
+. Add the following properties to your 'application.properties' file.
+
++
+[source,java]
+----
+spring.cloud.stream.bindings.output.destination=sensor-data
+spring.cloud.stream.bindings.output.content-type=application/json
+----
+
+*Congratulations!*
+You've just completed your first Spring Cloud Stream Source application.
+
+== Create sensor data sink application
+
+. Add a 'SensorData' class
++
+[source,java]
+----
+package io.spring.pivotal.sensor;
+
+public class SensorData {
+
+	private int sensorId;
+
+	private double temperature;
+
+	public SensorData() {
+	}
+
+	public SensorData(int sensorId, double temperature) {
+		this.sensorId = sensorId;
+		this.temperature = temperature;
+	}
+
+	public int getSensorId() {
+		return sensorId;
+	}
+
+	public double getTemperature() {
+		return temperature;
+	}
+}
+----
+
+. Add a 'SensorDataSink' class
++
+[source,java]
+----
+package io.spring.pivotal.sensor;
+
+import org.springframework.cloud.stream.annotation.EnableBinding;
+import org.springframework.cloud.stream.messaging.Sink;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@EnableBinding(Sink.class)
+public class SensorDataSink {
+	private static Logger logger = LoggerFactory.getLogger(SensorDataSink.class);
+
+	@ServiceActivator(inputChannel=Sink.INPUT)
+	public void ingest(Object payload) {
+		logger.info("Received: " + payload);
+	}
+}
+----
+
+. Add the following properties to your 'application.properties' file.
+
++
+[source,java]
+----
+server.port=8081
+spring.cloud.stream.bindings.input.destination=sensor-data
+spring.cloud.stream.bindings.input.content-type=application/json
+spring.cloud.stream.bindings.input.group=sensor-data
+----
+
+*Congratulations!*
+You've just completed your first Spring Cloud Stream sink application.
+
+== Test your application
+
+. Start RabbitMQ on your local machine
+
+. Execute the following script
++
+----
+temperature=0; while true; do { curl -X POST -H "Content-Type: application/json" -d '{"sensorId":"1","temperature":"'"$temperature"'"}' localhost:8080/ingest; sleep 1; ((temperature++)); printf "\n";} done
+----
+
+== Push your application to PCF
+
+. Create a RabbitMQ service
++
+----
+$ cf create-service cloudamqp lemur scs-rabbit
+----
++
+
+. Create a manifest.yml for your sink application in your sink project
+
++
+----
+---
+applications:
+- name: sink
+  memory: 512M
+  instances: 1
+  host: source-${random-word}
+  path: target/sensor-sink-spring-cloud-stream-0.0.1-SNAPSHOT.jar
+  services: [scs-rabbit]
+----
++
+
+. Create a manifest.yml for your source application in your source project
+
++
+----
+---
+applications:
+- name: source
+  memory: 512M
+  instances: 1
+  host: source-${random-word}
+  path: target/sensor-source-spring-cloud-stream-0.0.1-SNAPSHOT.jar
+  services: [scs-rabbit]
+----
++
+
+. Push both applications
+
++
+----
+$ cf push
+Using manifest file
+
+...
+
+Showing health and status for app source in org pnagel-workshop / space dieter as dflick@pivotal.io...
+OK
+
+requested state: started
+instances: 1/1
+usage: 512M x 1 instances
+urls: source-unretouched-leucopenia.cfapps.io
+last uploaded: Mon Aug 8 14:47:02 UTC 2016
+stack: cflinuxfs2
+buildpack: java-buildpack=v3.8.1-offline-https://github.com/cloudfoundry/java-buildpack.git#29c79f2 java-main open-jdk-like-jre=1.8.0_91-unlimited-crypto open-jdk-like-memory-calculator=2.0.2_RELEASE spring-auto-reconfiguration=1.10.0_RELEASE
+
+     state     since                    cpu      memory         disk           details
+#0   running   2016-08-08 04:47:46 PM   217.4%   305M of 512M   142.2M of 1G----
+----
+
+== Test your application on PCF
+
+. Collect sink application logs
+
++
+----
+$ cf logs sink
+----
+
+. Execute the following script
+
++
+----
+temperature=0; while true; do { curl -X POST -H "Content-Type: application/json" -d '{"sensorId":"1","temperature":"'"$temperature"'"}' source-unretouched-leucopenia.cfapps.io/ingest; sleep 1; ((temperature++)); printf "\n";} done
+----
+
+. Scale the sink application
++
+----
+$ cf scale sink -i 2
+----
++
+
+. Have a look at the sink logs. What and why is this happening?
++
+----
+2016-08-08T16:51:59.00+0200 [APP/0]      OUT 2016-08-08 14:51:59.001  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":126.0}
+2016-08-08T16:52:00.27+0200 [APP/1]      OUT 2016-08-08 14:52:00.270  INFO 29 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":127.0}
+2016-08-08T16:52:01.55+0200 [APP/0]      OUT 2016-08-08 14:52:01.553  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":128.0}
+2016-08-08T16:52:02.83+0200 [APP/1]      OUT 2016-08-08 14:52:02.836  INFO 29 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":129.0}
+2016-08-08T16:52:04.11+0200 [APP/0]      OUT 2016-08-08 14:52:04.107  INFO 28 --- [a.sensor-data-1] io.spring.pivotal.sensor.SensorDataSink  : Received: {"sensorId":1,"temperature":130.0}----
+----
+
+. Figure out with the help of the spring cloud stream reference - https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html#consumer-groups

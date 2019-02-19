@@ -1,382 +1,114 @@
-:compat-mode:
-= Lab 3 - Composing Cloud Native Architectures with Spring Cloud
+= Lab 3 - Operate the App on Cloud Foundry
 
-_A completed version of this lab is found at `$COURSE_HOME/labs/complete/fortune-teller`._
+_A completed version of this lab is found at `$COURSE_HOME/labs/complete/hello-spring-boot`._
 
-In this lab we're going to build a Fortune Teller application from two microservices, one that serves up random Chinese fortune cookie fortunes, and one that presents a user interface.
-The resulting application looks like the following screenshot:
+== Create a manifest file
 
-image::Common/images/fortunes-ui.png[width=50%]
+. Continue with the project you completed in link:lab_02.html[Lab 2].
 
-We'll leverage libraries and services from Spring Cloud and Netflix OSS to help us compose the system.
+. Create a `manifest.yml` file in the project root folder. Manifests provide consistency and reproducibility deploying apps to Cloud Foundry:
 
-== Bootstrapping
-
-. Import the project's `pom.xml`, found at `$COURSE_HOME/labs/initial/fortune-teller` into your IDE of choice.
-
-. At the command line, change directories to `$COURSE_HOME/labs/initial/fortune-teller`.
-
-. Run the following command:
 +
 ----
-$ spring cloud kafka configserver eureka hystrixdashboard
+--- <1>
+applications: <2>
+- name: hello <3>
+  random-route: true <4>
+  memory: 1G <5>
+  instances: 1
+	path: target/hello-spring-boot-0.0.1-SNAPSHOT.jar <6>
 ----
 +
-This command will helpfully start up the following components for us:
-+
-- https://kafka.apache.org/[Apache Kafka]
-- https://cloud.spring.io/spring-cloud-config/[Spring Cloud Config Server]
-- https://github.com/Netflix/eureka/wiki[Netflix OSS Eureka]
-- https://github.com/Netflix/Hystrix/wiki/Dashboard[Netflix OSS Hystrix Dashboard]
-- http://zipkin.io/[Zipkin]
+<1> The manifest begins with three dashes.
+<2> The applications block begins with a heading followed by a colon.
+<3> The app name.
+<4> A route mapped to an app is required to be unique on a Cloud Foundry instance. The property ensures a unique route mapped to the app.
+<5> There are plenty other properties available (ex. memory of the container the app lives in). https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html[docs]
+<6> Path to the artifact we want to run on Cloud Foundry
 
-+
-We'll use all of these components to help us compose and operate our Fortune Teller application.
+== Push!
 
-== Config Server
-
-. Browse the file https://github.com/dflick-pivotal/configrepo/blob/master/application.yml. This file contains a fallback message for our fortune service.
-
-. Browse to http://localhost:8888/application/default.
-You should see output similar to the following:
+. Login to Pivotal Cloud Foundry using the Cloud Foundry CLI, and target the space you were assigned in the class spreadsheet:
 +
 ----
-{
-  "name": "application",
-  "profiles": [
-    "default"
-  ],
-  "label": null,
-  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
-  "state": null,
-  "propertySources": [
-    {
-      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
-      "source": {
-        "fortune.fallbackFortune": "Your future is bright!"
-      }
-    }
-  ]
-}
-----
-+
-Note that the response JSON defines a Spring `PropertySource` that contains configuration consistent with what you saw in the Git repository.
+cf login -a api.run.pivotal.io
+API endpoint: api.run.pivotal.io
 
-== Eureka Server
+Email> dflick@pivotal.io
 
-. Browse to http://localhost:8761.
-You should see a UI similar to the following:
-+
-image::Common/images/eureka_1.png[]
+Password>
+Authenticating...
+OK
 
-== Fortune Service
+Select an org (or press enter to skip):
+1. dieter-org
+2. EMEA
 
-Now that our Spring Cloud/Netflix OSS infrastructure is bootstrapped, we'll begin development of our first microservice.
-The Fortune Service will serve up a list of all fortune cookie fortunes present in its database or a single random fortune.
+Org> 2
+Targeted org EMEA
 
-. Create a JPA domain class, `io.spring.cloud.samples.fortuneteller.fortuneservice.Fortune`.
-Into that class, paste the following code:
-+
-----
-@Entity
-@Table(name = "fortunes")
-public class Fortune {
+Select a space (or press enter to skip):
+There are too many options to display, please type in the name.
 
-    @Id
-    @GeneratedValue
-    private Long id;
+Space> dflick-dev
+Targeted space dflick-dev
 
-    @Column(nullable = false)
-    private String text;
 
-    public Long getId() {
-        return id;
-    }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-}
-----
-+
-Add the appropriate imports using the IDE's quick fix feature.
-+
-This class represents the domain model for a fortune, having an unique identifier and the fortune's text.
-
-. Create a Spring Data JPA repository interface, `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneRepository`.
-Into that class, paste the following code:
-+
-----
-public interface FortuneRepository extends PagingAndSortingRepository<Fortune, Long> {
-
-    @Query("select fortune from Fortune fortune order by RAND()")
-    public List<Fortune> randomFortunes(Pageable pageable);
-}
-----
-+
-Add the appropriate imports using the IDE's quick fix feature.
-+
-This interface will provide all of the basic boilerplate CRUD features we'll want for our `Fortune` domain class.
-The `@Query` annotation defines a SQL statement that will return a random ordering of the fortunes.
-We'll use this as the basis of returning a random fortune via our REST interface.
-
-. Create a Spring MVC Controller class, `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController`.
-Into that class, paste the following code:
-+
-----
-@RestController
-public class FortuneController {
-
-    @Autowired
-    FortuneRepository repository;
-
-    @RequestMapping("/fortunes")
-    public Iterable<Fortune> fortunes() {
-        return repository.findAll();
-    }
-
-    @RequestMapping("/random")
-    public Fortune randomFortune() {
-        List<Fortune> randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
-        return randomFortunes.get(0);
-    }
-}
-----
-+
-Add the appropriate imports using the IDE's quick fix feature.
-+
-This class provides the two REST endpoints of our microservice.
-The `randomFortune` method provides a `PageRequest` to limit the returned results to one.
-
-. Add `@EnableDiscoveryClient` (to switch on Eureka registration) annotations to `io.spring.cloud.samples.fortuneteller.fortuneservice.Application`.
-
-. Paste the following configuration properties into the file `src/main/resources/bootstrap.yml`:
-+
-----
-spring:
-  application:
-    name: fortunes
-----
-+
-This configuration specifies the name of the application, which will be used to register the service in Eureka.
-
-. Paste the following configuration properties into the file `src/main/resources/application.yml`:
-+
-----
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-
-ribbon:
-  IsSecure: false
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-
-server:
-  port: 8081
-----
-+
-This configuration specifies the model to DDL setting to be used by Hibernate.
-
-. Build the application:
-+
-----
-$ ../mvnw package
+API endpoint:   https://api.run.pivotal.io (API version: 2.131.0)
+User:           dflick@pivotal.io
+Org:            EMEA
+Space:          dflick-dev
 ----
 
-. Run the application:
+. Push the app to cloud foundry:
 +
 ----
-$ java -jar fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar
+cf push
 ----
 
-. After the service has been running for ten seconds, refresh your Eureka browser tab.
-You should see a registration entry for the fortune service.
 
-. Visit http://localhost:8081/random. You should see output similar to the following:
+== Apps Manager
+
+. Access http://console.run.pivotal.io in the browser. You'll be redirected to login.
+
+. Choose your organization and space and you should see your app:
 +
-image::Common/images/fortune_service_output.png[]
+image::Common/images/app_01.png[]
 
-== Fortune UI
-
-Now that our Fortune microservice is running, we'll begin development of our second microservice.
-The Fortune UI will serve up a AngularJS single page application that consumes the fortune service.
-
-. Create the POJO `io.spring.cloud.samples.fortuneteller.ui.Fortune`.
-Into that class, paste the following code:
+. Click on the route to load the app in a browser:
 +
-----
-public class Fortune {
-    private Long id;
-    private String text;
+image::Common/images/app_02.png[]
 
-    public Fortune() {
-    }
-
-    public Fortune(Long id, String text) {
-        this.id = id;
-        this.text = text;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
-    }
-}
-----
+. Go back to the apps manager and click on the app name to see more details:
 +
-We will use this class to unmarshal the response from the fortune service.
+image::Common/images/app_03.png[]
 
-. Create the Spring Bean `io.spring.cloud.samples.fortuneteller.ui.FortuneProperties`. Into that class, paste the following code:
+. Recognize the spring-boot icon in the left hand upper corner. This indicates the app was recognized as a spring-boot app. This allows you to access within apps manager ui actuator endpoints to operate your app. Click on Logs to set the log level of your app during app runtime:
 +
-----
-@ConfigurationProperties(prefix = "fortune")
-@RefreshScope
-public class FortuneProperties {
+image::Common/images/app_04.png[]
 
-	private String fallbackFortune = "Your future is unclear.";
-
-	public String getFallbackFortune() {
-		return fallbackFortune;
-	}
-
-	public void setFallbackFortune(String fallbackFortune) {
-		this.fallbackFortune = fallbackFortune;
-	}
-
-}
-----
-
-. Create the Spring Bean `io.spring.cloud.samples.fortuneteller.ui.FortuneService`.
-Into that class, paste the following code:
+. Go back to the application details within apps manager and click *View in PCF Metrics*
 +
-----
-@Service
-@EnableConfigurationProperties(FortuneProperties.class)
-public class FortuneService {
-
-    @Autowired
-    FortuneProperties fortuneProperties;
-
-    @Autowired
-    @LoadBalanced
-    RestTemplate restTemplate;
-
-    @HystrixCommand(fallbackMethod = "fallbackFortune")
-    public Fortune randomFortune() {
-        return restTemplate.getForObject("http://fortunes/random", Fortune.class);
-    }
-
-    private Fortune fallbackFortune() {
-        return new Fortune(42L, fortuneProperties.getFallbackFortune());
-    }
-}
-----
+image::Common/images/app_05.png[]
 +
-Add the appropriate imports using the IDE's quick fix feature.
-+
-This class is our integration point with the fortune service.
-It uses a special `RestTemplate` bean that integrates with Ribbon from Netflix OSS.
-The argument passed to `getForObject`, `http://fortunes/random`, will be resolved by Ribbon to the actual address of the fortune service.
-This method is also protected by a Hystrix circuit breaker using the `@HystrixCommand` annotation.
-If the circuit is tripped to open (due to an unhealthy fortune service), the `fallbackFortune` method will return a dummy response.
+PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (crashes, start, stop, ...) and logs are available. Logs are visualized within the same context as metrics and events. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.
 
-. Create a Spring MVC Controller class, `io.spring.cloud.samples.fortuneteller.ui.UiController`.
-Into that class, paste the following code:
-+
+== CF CLI
+
+Apps Manager and CF cli implement the cloud controller api. There plenty of cf cli commands available to manage your app. We speak about the application dial tone. Meaning:
+
 ----
-@RestController
-public class UiController {
-
-    @Autowired
-    FortuneService service;
-
-    @RequestMapping("/random")
-    public Fortune randomFortune() {
-        return service.randomFortune();
-    }
-}
-----
-+
-Add the appropriate imports using the IDE's quick fix feature.
-+
-This class provides the REST endpoint that will be consumed by our AngularJS UI.
-
-. Add `@EnableCircuitBreaker` (to switch on Hystrix circuit breakers) and `@EnableDiscoveryClient` (to switch on Eureka registration) annotations to `io.spring.cloud.samples.fortuneteller.ui.Application`.
-
-. Also add the following code to `io.spring.cloud.samples.fortuneteller.ui.Application` to instruct Spring Cloud Netflix to create a load-balanced `RestTemplate`:
-+
-----
-@Bean
-@LoadBalanced
-public RestTemplate restTemplate() {
-  return new RestTemplate();
-}
+cf COMMAND APP_NAME
 ----
 
-. Paste the following configuration properties into the file `src/main/resources/bootstrap.yml`:
-+
-----
-spring:
-  application:
-    name: ui
-----
-+
-This configuration specifies the name of the application, which will be used to register the service in Eureka.
+Everything you do is within the context of an app. You tell Cloud Foundry what you want to do with an app. If you want to stop, start, scale, stream logs, set env variables, ... by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.
 
-. Paste the following configuration properties into the file `src/main/resources/application.yml`:
-+
+. Stream the app logs to the cf cli
 ----
-ribbon:
-  isSecure: false
+cf logs hello
+Retrieving logs for app hello in org EMEA / space dflick-dev as dflick@pivotal.io...
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
+   2019-02-19T18:45:42.82+0100 [RTR/8] OUT hello-talkative-cat.cfapps.io - [2019-02-19T17:45:42.805+0000] "GET / HTTP/1.1" 200 0 12 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36" "10.10.2.132:15612" "10.10.149.32:61232" x_forwarded_for:"77.4.95.59, 10.10.2.132" x_forwarded_proto:"https" vcap_request_id:"7ba8d176-455f-4e90-55dd-0e07dbe6de1e" response_time:0.015656715 app_id:"87bee6e7-b632-4b8a-9ff3-09aa197dc334" app_index:"0" x_b3_traceid:"05b7324107f12047" x_b3_spanid:"05b7324107f12047" x_b3_parentspanid:"-"
+   2019-02-19T18:45:42.82+0100 [RTR/8] OUT
 ----
-+
-
-. Build the application:
-+
-----
-$ ./mvnw package
-----
-
-. Run the application:
-+
-----
-$ java -jar fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
-----
-
-. After the service has been running for ten seconds, refresh your Eureka browser tab.
-You should see a registration entry for the Fortune UI.
-
-. Visit http://localhost:8080. You should see output similar to the following:
-+
-image::Common/images/fortunes-ui.png[width=50%]

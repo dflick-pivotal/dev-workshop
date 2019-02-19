@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.8">
-<title>Lab 4 - Operating Cloud Native Architectures with Spring Cloud</title>
+<title>Lab 4 - Composing Cloud Native Architectures with Spring Cloud</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -432,7 +432,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1>Lab 4 - Operating Cloud Native Architectures with Spring Cloud</h1>
+<h1>Lab 4 - Composing Cloud Native Architectures with Spring Cloud</h1>
 </div>
 <div id="content">
 <div id="preamble">
@@ -441,476 +441,504 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p><em>A completed version of this lab is found at <code>$COURSE_HOME/labs/complete/fortune-teller</code>.</em></p>
 </div>
 <div class="paragraph">
-<p>In this lab we&#8217;re going to leverage some of the operability helps provided by Spring Cloud to monitor, manage, and troubleshoot our Fortune Teller application.
-We&#8217;ll work with the following:</p>
+<p>In this lab we&#8217;re going to build a Fortune Teller application from two microservices, one that serves up random Chinese fortune cookie fortunes, and one that presents a user interface.
+The resulting application looks like the following screenshot:</p>
 </div>
-<div class="ulist">
-<ul>
-<li>
-<p><a href="https://cloud.spring.io/spring-cloud-config/">Spring Cloud Bus</a>, which enables us to refresh the configuration values used by our microservices without restarting or redeploying them.</p>
-</li>
-<li>
-<p><a href="https://github.com/Netflix/Hystrix/wiki/Dashboard">Hystrix Dashboard</a>, which enables us to monitor the status of our application&#8217;s circuit breakers.</p>
-</li>
-<li>
-<p><a href="http://zipkin.io/">Zipkin</a>, which enables us to determine the sources of latency in our microservice call graphs.</p>
-</li>
-</ul>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/fortunes-ui.png" alt="fortunes ui" width="50%">
+</div>
+</div>
+<div class="paragraph">
+<p>We&#8217;ll leverage libraries and services from Spring Cloud and Netflix OSS to help us compose the system.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_setting_up_the_cloud_bus">Setting up the Cloud Bus</h2>
+<h2 id="_bootstrapping">Bootstrapping</h2>
 <div class="sectionbody">
-<div class="paragraph">
-<p>Because everyone in the class will be pushing configuration changes to GitHub, you&#8217;ll need your own fork of the config repository.</p>
-</div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Visit <a href="https://github.com/dflick-pivotal/configrepo" class="bare">https://github.com/dflick-pivotal/configrepo</a> in a browser and click on <strong>Fork</strong>:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fork-config-repo.png" alt="fork config repo">
-</div>
-</div>
+<p>Import the project&#8217;s <code>pom.xml</code>, found at <code>$COURSE_HOME/labs/initial/fortune-teller</code> into your IDE of choice.</p>
 </li>
 <li>
-<p>Once your fork is completed, grab the clone URL</p>
+<p>At the command line, change directories to <code>$COURSE_HOME/labs/initial/fortune-teller</code>.</p>
 </li>
 <li>
-<p>Clone your <code>config-repo</code> fork with a command similar to the following, but substituting the location of your fork:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ git clone https://github.com/student/configrepo.git</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Now we need to point our Config Server at our forked repo. If you haven&#8217;t already, shutdown all of the Spring Cloud apps using CTRL-C.</p>
-</li>
-<li>
-<p>Open the file <code>$COURSE_HOME/labs/initial/fortune-teller/config/configserver.yml</code> in a text editor. Change line 8 to have the location of your fork. Example:</p>
-<div class="listingblock">
-<div class="content">
-<pre>uri: https://github.com/student/configrepo.git</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Now restart the Spring Cloud apps:</p>
+<p>Run the following command:</p>
 <div class="listingblock">
 <div class="content">
 <pre>$ spring cloud kafka configserver eureka hystrixdashboard</pre>
 </div>
 </div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_changing_log_levels_at_runtime">Changing Log Levels at Runtime</h2>
-<div class="sectionbody">
 <div class="paragraph">
-<p>Have you ever been troubleshooting an issue that would no longer manifest after restarting the application, but you also wanted to change the log level?
-We now have a solution to that problem!</p>
-</div>
-<div class="paragraph">
-<p>Let&#8217;s start out by adding some <code>DEBUG</code> level logs to our microservices.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Begin by adding a <code>Logger</code> to <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>Logger logger = LoggerFactory.getLogger(FortuneController.class);</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Next, add a <code>DEBUG</code> log statement to <code>FortuneController.randomFortune</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>logger.debug("Handling request to /random!");</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Now add a <code>Logger</code> to <code>io.spring.cloud.samples.fortuneteller.ui.UiController</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>Logger logger = LoggerFactory.getLogger(UiController.class);</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Then, add a <code>DEBUG</code> log statement to:
-<code>UiController.randomFortune</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>logger.debug("Handling request to /random!");</pre>
-</div>
-</div>
-</li>
-<li>
-<p>We also need to add the Spring Cloud Bus dependencies to our microservices. Add the following to <code>pom.xml</code> for both <code>fortune-teller-fortune-service</code> and <code>fortune-teller-ui</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-cloud-starter-bus-kafka&lt;/artifactId&gt;
-&lt;/dependency&gt;</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Build and start both the Fortune Service and the Fortune UI.</p>
-</li>
-<li>
-<p>Access <a href="http://localhost:8080" class="bare">http://localhost:8080</a> in the browser. You should <strong>not</strong> see your newly added log messages in either applications' consoles.</p>
-</li>
-<li>
-<p>Now it&#8217;s time to change the log level at runtime. In your locally cloned fork of the config repo, edit the file <code>application.yml</code>. Change line 6 such that the logging section now appears as follows:</p>
-<div class="listingblock">
-<div class="content">
-<pre>logging:
-  level:
-    io:
-      spring:
-        cloud:
-          samples: DEBUG</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Commit your change:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ git commit -am "change logging level to DEBUG"</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Push your change:</p>
-<div class="listingblock">
-<div class="content">
-<pre>$ git push origin master</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Check if Config Server already got the new config from the repo:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/config.png" alt="config">
-</div>
-</div>
-</li>
-<li>
-<p>Curl the refresh endpoint of one of your apps to refresh the config in both of your apps via cloud bus</p>
-</li>
-</ol>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>curl -X POST http://localhost:8080/actuator/bus-refresh</pre>
-</div>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Access <a href="http://localhost:8080" class="bare">http://localhost:8080</a> in the browser. You <strong>should</strong> see your newly added log messages in both applications' consoles (e.g.):</p>
-<div class="listingblock">
-<div class="content">
-<pre>2019-02-19 12:06:09.408 DEBUG 5217 --- [nio-8081-exec-9] i.s.c.s.f.f.c.FortuneController          : Handling request to /random!</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Leave both fortune applications running for the next set of exercises!</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_hystrix_dashboard">Hystrix Dashboard</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>You should already have the Hystrix Dashboard running based on the <code>spring cloud</code> command that you ran during the <strong>Cloud Bus</strong> exercise.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Visit <a href="http://localhost:7979" class="bare">http://localhost:7979</a>.
-You should see output similar to the following:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/hystrix_dashboard_1.png" alt="hystrix dashboard 1">
-</div>
-</div>
-</li>
-<li>
-<p>Paste <a href="http://localhost:8080/actuator/hystrix.stream" class="bare">http://localhost:8080/actuator/hystrix.stream</a> into the text field and click <strong>Monitor Stream</strong>.
-You should see output similar to the following:</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/hystrix_dashboard_2.png" alt="hystrix dashboard 2">
-</div>
-</div>
-</li>
-<li>
-<p>In a browser, access the fortune-teller-ui application at <a href="http://localhost:8080" class="bare">http://localhost:8080</a> and show that the circuit breaker is registering successful requests.</p>
-</li>
-<li>
-<p>Stop the fortune-teller-fortune-service application.</p>
-</li>
-<li>
-<p>Access the fortune-teller-ui application at <a href="http://localhost:8080" class="bare">http://localhost:8080</a>, see that the &#8220;fallback fortune&#8221; is being returned, and show that the circuit breaker is registering short-circuited requests.</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fortunes_4.png" alt="fortunes 4">
-</div>
-</div>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fortunes_5.png" alt="fortunes 5">
-</div>
-</div>
-</li>
-<li>
-<p>Restart the fortune-teller-fortune-service application.</p>
-</li>
-<li>
-<p>Continue to access the fortune-teller-ui and watch the dashboard.
-After the fortune-teller-fortune-service has re-registered with Eureka and the fortune-teller-ui load balancer caches are refreshed, you will see the circuit breaker recover.
-You should then start getting random fortunes again!</p>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_swapping_out_fallback_behavior_with_cloud_bus">Swapping Out Fallback Behavior with Cloud Bus</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>The Spring Cloud Bus is not only useful for swapping out log levels. Let&#8217;s use it to swap out a developer defined property instead.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Take a look at <code>io.spring.cloud.samples.fortuneteller.ui.FortuneProperties</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@ConfigurationProperties(prefix = "fortune") // <b class="conum">(1)</b>
-@RefreshScope // <b class="conum">(2)</b>
-public class FortuneProperties {
-
-    private String fallbackFortune = "Your future is unclear."; // <b class="conum">(3)</b>
-
-    public String getFallbackFortune() {
-        return fallbackFortune;
-    }
-
-    public void setFallbackFortune(String fallbackFortune) {
-        this.fallbackFortune = fallbackFortune;
-    }
-
-}</pre>
-</div>
-</div>
-<div class="colist arabic">
-<ol>
-<li>
-<p><code>FortuneProperties</code> is annotated as a <code>@ConfigurationProperties</code> object. These objects provide a type-safe mechanism for handling configuration. Learn more from the following  <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-typesafe-configuration-properties">documentation</a>.</p>
-</li>
-<li>
-<p><code>FortuneProperties</code> is also scoped as <code>@RefreshScope</code>. This will cause it to be reinitialized based on configuration changes. Learn more from the following <a href="http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_refresh_scope">documentation</a>.</p>
-</li>
-<li>
-<p><code>fallbackFortune</code> has a default value that is equivalent to what we have in our config repo. Config Server configuration overrides any local configuration by default, so this value is not actually causing the runtime behavior of our app at this time.</p>
-</li>
-</ol>
-</div>
-</li>
-<li>
-<p>Stop the <code>fortune-teller-fortune-service</code> application.</p>
-</li>
-<li>
-<p>Access the fortune-teller-ui application at <a href="http://localhost:8080" class="bare">http://localhost:8080</a>, see that the &#8220;fallback fortune&#8221; is being returned.</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/fortunes_4.png" alt="fortunes 4">
-</div>
-</div>
-</li>
-<li>
-<p>In your local clone of the config repo fork, edit line 9 such that the <code>fortune</code> section looks like the following:</p>
-<div class="listingblock">
-<div class="content">
-<pre>fortune:
-  fallbackFortune: Today is your lucky day!</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Save, commit, and push your changes to GitHub.</p>
-</li>
-<li>
-<p>Refreshed the app config via:</p>
-</li>
-</ol>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>http://localhost:8080/actuator/bus-refresh endpoint you should see the new fallback.</pre>
-</div>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Access the fortune-teller-ui application at <a href="http://localhost:8080" class="bare">http://localhost:8080</a>, see that the new &#8220;fallback fortune&#8221; is being returned.</p>
-<div class="imageblock">
-<div class="content">
-<img src="Common/images/lucky_day.png" alt="lucky day">
-</div>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
-<div class="sect1">
-<h2 id="_correlated_logs_with_spring_cloud_sleuth">Correlated Logs with Spring Cloud Sleuth</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Now we&#8217;re going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.</p>
-</div>
-<div class="paragraph">
-<p>To look at the latency involved in a call graph, we&#8217;re interested in four events:</p>
+<p>This command will helpfully start up the following components for us:</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Client Send (CS):</strong> the client sends a call to the remote service</p>
+<p><a href="https://kafka.apache.org/">Apache Kafka</a></p>
 </li>
 <li>
-<p><strong>Server Receive (SR):</strong> the call is received by the remote service and work begins</p>
+<p><a href="https://cloud.spring.io/spring-cloud-config/">Spring Cloud Config Server</a></p>
 </li>
 <li>
-<p><strong>Server Send (SS):</strong> the server has completed work and responds to the client</p>
+<p><a href="https://github.com/Netflix/eureka/wiki">Netflix OSS Eureka</a></p>
 </li>
 <li>
-<p><strong>Client Receive (CR):</strong> the client receives the response from the remote service</p>
+<p><a href="https://github.com/Netflix/Hystrix/wiki/Dashboard">Netflix OSS Hystrix Dashboard</a></p>
+</li>
+<li>
+<p><a href="http://zipkin.io/">Zipkin</a></p>
 </li>
 </ul>
 </div>
 <div class="paragraph">
-<p>Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Add the following dependency to the <code>pom.xml</code> of both <code>fortune-teller-fortune-service</code> and <code>fortune-teller-ui</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-cloud-starter-zipkin&lt;/artifactId&gt;
-&lt;/dependency&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This dependency is for Zipkin, but it adds the Sleuth dependencies transitively, and we&#8217;ll need Zipkin for the next exercise.</p>
-</div>
-</li>
-<li>
-<p>Let&#8217;s add some logs representing our events of interest. In <code>fortune-teller-ui</code>, add a <code>Logger</code> to <code>io.spring.cloud.samples.fortuneteller.ui.FortuneService</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>Logger logger = LoggerFactory.getLogger(FortuneService.class);</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Edit the definition of <code>FortuneService.randomFortune</code> to include logs for client send and client receive events:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@HystrixCommand(fallbackMethod = "fallbackFortune")
-public Fortune randomFortune() {
-  logger.info("CS: calling http://fortunes/random.");
-  Fortune fortune = restTemplate.getForObject("http://fortunes/random", Fortune.class);
-  logger.info("CR: received response from http://fortunes/random.");
-  return fortune;
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>In <code>fortune-teller-fortune-service</code>, edit the definition of <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController.randomFortune</code> to include logs for server receive and server send events:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@RequestMapping("/random")
-public Fortune randomFortune() {
-  logger.debug("Handling request to /random!");
-  logger.info("SR: received call to /random.");
-  List&lt;Fortune&gt; randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
-  logger.info("SS: responding to call to /random.");
-  return randomFortunes.get(0);
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Rebuild and restart both applications.</p>
-</li>
-<li>
-<p>Access <a href="http://localhost:8080" class="bare">http://localhost:8080</a> in the browser. You should see the correlated log events in each applications' logs:</p>
-<div class="listingblock">
-<div class="title">fortune-teller-ui</div>
-<div class="content">
-<pre>2016-10-16 14:06:31.625  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CS: calling http://fortunes/random.
-2016-10-16 14:06:31.631  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CR: received response from http://fortunes/random.</pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">fortune-teller-fortune-service</div>
-<div class="content">
-<pre>2016-10-16 14:06:31.628  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SR: received call to /random.
-2016-10-16 14:06:31.629  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SS: responding to call to /random.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Pay attention to the section of the log statement that appears in square brackets immediately after the log level:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[fortunes,d64d19d2235e760,6b492a088a2ea3f2,false]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The tokens represent the following:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The application name (<code>fortunes</code>)</p>
-</li>
-<li>
-<p>The trace ID (<code>d64d19d2235e760</code>)</p>
-</li>
-<li>
-<p>The span ID (<code>6b492a088a2ea3f2</code>)</p>
-</li>
-<li>
-<p>Should this trace be exported to Zipkin (<code>false</code>)</p>
-<div class="paragraph">
-<p>To learn more about this terminology, see this <a href="http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2">section</a> of the Spring Cloud Sleuth documentation.</p>
+<p>We&#8217;ll use all of these components to help us compose and operate our Fortune Teller application.</p>
 </div>
 </li>
 </ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_config_server">Config Server</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Browse the file <a href="https://github.com/dflick-pivotal/configrepo/blob/master/application.yml" class="bare">https://github.com/dflick-pivotal/configrepo/blob/master/application.yml</a>. This file contains a fallback message for our fortune service.</p>
+</li>
+<li>
+<p>Browse to <a href="http://localhost:8888/application/default" class="bare">http://localhost:8888/application/default</a>.
+You should see output similar to the following:</p>
+<div class="listingblock">
+<div class="content">
+<pre>{
+  "name": "application",
+  "profiles": [
+    "default"
+  ],
+  "label": null,
+  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
+  "state": null,
+  "propertySources": [
+    {
+      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
+      "source": {
+        "fortune.fallbackFortune": "Your future is bright!"
+      }
+    }
+  ]
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note that the response JSON defines a Spring <code>PropertySource</code> that contains configuration consistent with what you saw in the Git repository.</p>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_eureka_server">Eureka Server</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Browse to <a href="http://localhost:8761" class="bare">http://localhost:8761</a>.
+You should see a UI similar to the following:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/eureka_1.png" alt="eureka 1">
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_fortune_service">Fortune Service</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that our Spring Cloud/Netflix OSS infrastructure is bootstrapped, we&#8217;ll begin development of our first microservice.
+The Fortune Service will serve up a list of all fortune cookie fortunes present in its database or a single random fortune.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create a JPA domain class, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.Fortune</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@Entity
+@Table(name = "fortunes")
+public class Fortune {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Column(nullable = false)
+    private String text;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
+</div>
+<div class="paragraph">
+<p>This class represents the domain model for a fortune, having an unique identifier and the fortune&#8217;s text.</p>
+</div>
+</li>
+<li>
+<p>Create a Spring Data JPA repository interface, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneRepository</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>public interface FortuneRepository extends PagingAndSortingRepository&lt;Fortune, Long&gt; {
+
+    @Query("select fortune from Fortune fortune order by RAND()")
+    public List&lt;Fortune&gt; randomFortunes(Pageable pageable);
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
+</div>
+<div class="paragraph">
+<p>This interface will provide all of the basic boilerplate CRUD features we&#8217;ll want for our <code>Fortune</code> domain class.
+The <code>@Query</code> annotation defines a SQL statement that will return a random ordering of the fortunes.
+We&#8217;ll use this as the basis of returning a random fortune via our REST interface.</p>
+</div>
+</li>
+<li>
+<p>Create a Spring MVC Controller class, <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@RestController
+public class FortuneController {
+
+    @Autowired
+    FortuneRepository repository;
+
+    @RequestMapping("/fortunes")
+    public Iterable&lt;Fortune&gt; fortunes() {
+        return repository.findAll();
+    }
+
+    @RequestMapping("/random")
+    public Fortune randomFortune() {
+        List&lt;Fortune&gt; randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
+        return randomFortunes.get(0);
+    }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
+</div>
+<div class="paragraph">
+<p>This class provides the two REST endpoints of our microservice.
+The <code>randomFortune</code> method provides a <code>PageRequest</code> to limit the returned results to one.</p>
+</div>
+</li>
+<li>
+<p>Add <code>@EnableDiscoveryClient</code> (to switch on Eureka registration) annotations to <code>io.spring.cloud.samples.fortuneteller.fortuneservice.Application</code>.</p>
+</li>
+<li>
+<p>Paste the following configuration properties into the file <code>src/main/resources/bootstrap.yml</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>spring:
+  application:
+    name: fortunes</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This configuration specifies the name of the application, which will be used to register the service in Eureka.</p>
+</div>
+</li>
+<li>
+<p>Paste the following configuration properties into the file <code>src/main/resources/application.yml</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+ribbon:
+  IsSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+server:
+  port: 8081</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This configuration specifies the model to DDL setting to be used by Hibernate.</p>
+</div>
+</li>
+<li>
+<p>Build the application:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ ../mvnw package</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the application:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ java -jar fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar</pre>
+</div>
+</div>
+</li>
+<li>
+<p>After the service has been running for ten seconds, refresh your Eureka browser tab.
+You should see a registration entry for the fortune service.</p>
+</li>
+<li>
+<p>Visit <a href="http://localhost:8081/random" class="bare">http://localhost:8081/random</a>. You should see output similar to the following:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/fortune_service_output.png" alt="fortune service output">
+</div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_fortune_ui">Fortune UI</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that our Fortune microservice is running, we&#8217;ll begin development of our second microservice.
+The Fortune UI will serve up a AngularJS single page application that consumes the fortune service.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create the POJO <code>io.spring.cloud.samples.fortuneteller.ui.Fortune</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>public class Fortune {
+    private Long id;
+    private String text;
+
+    public Fortune() {
+    }
+
+    public Fortune(Long id, String text) {
+        this.id = id;
+        this.text = text;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We will use this class to unmarshal the response from the fortune service.</p>
+</div>
+</li>
+<li>
+<p>Create the Spring Bean <code>io.spring.cloud.samples.fortuneteller.ui.FortuneProperties</code>. Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@ConfigurationProperties(prefix = "fortune")
+@RefreshScope
+public class FortuneProperties {
+
+	private String fallbackFortune = "Your future is unclear.";
+
+	public String getFallbackFortune() {
+		return fallbackFortune;
+	}
+
+	public void setFallbackFortune(String fallbackFortune) {
+		this.fallbackFortune = fallbackFortune;
+	}
+
+}</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Create the Spring Bean <code>io.spring.cloud.samples.fortuneteller.ui.FortuneService</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@Service
+@EnableConfigurationProperties(FortuneProperties.class)
+public class FortuneService {
+
+    @Autowired
+    FortuneProperties fortuneProperties;
+
+    @Autowired
+    @LoadBalanced
+    RestTemplate restTemplate;
+
+    @HystrixCommand(fallbackMethod = "fallbackFortune")
+    public Fortune randomFortune() {
+        return restTemplate.getForObject("http://fortunes/random", Fortune.class);
+    }
+
+    private Fortune fallbackFortune() {
+        return new Fortune(42L, fortuneProperties.getFallbackFortune());
+    }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
+</div>
+<div class="paragraph">
+<p>This class is our integration point with the fortune service.
+It uses a special <code>RestTemplate</code> bean that integrates with Ribbon from Netflix OSS.
+The argument passed to <code>getForObject</code>, <code>http://fortunes/random</code>, will be resolved by Ribbon to the actual address of the fortune service.
+This method is also protected by a Hystrix circuit breaker using the <code>@HystrixCommand</code> annotation.
+If the circuit is tripped to open (due to an unhealthy fortune service), the <code>fallbackFortune</code> method will return a dummy response.</p>
+</div>
+</li>
+<li>
+<p>Create a Spring MVC Controller class, <code>io.spring.cloud.samples.fortuneteller.ui.UiController</code>.
+Into that class, paste the following code:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@RestController
+public class UiController {
+
+    @Autowired
+    FortuneService service;
+
+    @RequestMapping("/random")
+    public Fortune randomFortune() {
+        return service.randomFortune();
+    }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Add the appropriate imports using the IDE&#8217;s quick fix feature.</p>
+</div>
+<div class="paragraph">
+<p>This class provides the REST endpoint that will be consumed by our AngularJS UI.</p>
+</div>
+</li>
+<li>
+<p>Add <code>@EnableCircuitBreaker</code> (to switch on Hystrix circuit breakers) and <code>@EnableDiscoveryClient</code> (to switch on Eureka registration) annotations to <code>io.spring.cloud.samples.fortuneteller.ui.Application</code>.</p>
+</li>
+<li>
+<p>Also add the following code to <code>io.spring.cloud.samples.fortuneteller.ui.Application</code> to instruct Spring Cloud Netflix to create a load-balanced <code>RestTemplate</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>@Bean
+@LoadBalanced
+public RestTemplate restTemplate() {
+  return new RestTemplate();
+}</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Paste the following configuration properties into the file <code>src/main/resources/bootstrap.yml</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>spring:
+  application:
+    name: ui</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This configuration specifies the name of the application, which will be used to register the service in Eureka.</p>
+</div>
+</li>
+<li>
+<p>Paste the following configuration properties into the file <code>src/main/resources/application.yml</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>ribbon:
+  isSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Build the application:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ ./mvnw package</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Run the application:</p>
+<div class="listingblock">
+<div class="content">
+<pre>$ java -jar fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar</pre>
+</div>
+</div>
+</li>
+<li>
+<p>After the service has been running for ten seconds, refresh your Eureka browser tab.
+You should see a registration entry for the Fortune UI.</p>
+</li>
+<li>
+<p>Visit <a href="http://localhost:8080" class="bare">http://localhost:8080</a>. You should see output similar to the following:</p>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/fortunes-ui.png" alt="fortunes ui" width="50%">
+</div>
 </div>
 </li>
 </ol>
@@ -920,7 +948,7 @@ public Fortune randomFortune() {
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 13:23:28 +0100
+Last updated 2019-02-19 18:53:16 +0100
 </div>
 </div>
 </body>

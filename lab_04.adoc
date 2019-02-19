@@ -1,294 +1,382 @@
 :compat-mode:
-= Lab 4 - Operating Cloud Native Architectures with Spring Cloud
+= Lab 4 - Composing Cloud Native Architectures with Spring Cloud
 
 _A completed version of this lab is found at `$COURSE_HOME/labs/complete/fortune-teller`._
 
-In this lab we're going to leverage some of the operability helps provided by Spring Cloud to monitor, manage, and troubleshoot our Fortune Teller application.
-We'll work with the following:
+In this lab we're going to build a Fortune Teller application from two microservices, one that serves up random Chinese fortune cookie fortunes, and one that presents a user interface.
+The resulting application looks like the following screenshot:
 
-- https://cloud.spring.io/spring-cloud-config/[Spring Cloud Bus], which enables us to refresh the configuration values used by our microservices without restarting or redeploying them.
-- https://github.com/Netflix/Hystrix/wiki/Dashboard[Hystrix Dashboard], which enables us to monitor the status of our application's circuit breakers.
-- http://zipkin.io/[Zipkin], which enables us to determine the sources of latency in our microservice call graphs.
+image::Common/images/fortunes-ui.png[width=50%]
 
-== Setting up the Cloud Bus
+We'll leverage libraries and services from Spring Cloud and Netflix OSS to help us compose the system.
 
-Because everyone in the class will be pushing configuration changes to GitHub, you'll need your own fork of the config repository.
+== Bootstrapping
 
-. Visit https://github.com/dflick-pivotal/configrepo in a browser and click on *Fork*:
-+
-image::Common/images/fork-config-repo.png[]
+. Import the project's `pom.xml`, found at `$COURSE_HOME/labs/initial/fortune-teller` into your IDE of choice.
 
-. Once your fork is completed, grab the clone URL
-+
+. At the command line, change directories to `$COURSE_HOME/labs/initial/fortune-teller`.
 
-. Clone your `config-repo` fork with a command similar to the following, but substituting the location of your fork:
-+
-----
-$ git clone https://github.com/student/configrepo.git
-----
-
-. Now we need to point our Config Server at our forked repo. If you haven't already, shutdown all of the Spring Cloud apps using CTRL-C.
-
-. Open the file `$COURSE_HOME/labs/initial/fortune-teller/config/configserver.yml` in a text editor. Change line 8 to have the location of your fork. Example:
-+
-----
-uri: https://github.com/student/configrepo.git
-----
-
-. Now restart the Spring Cloud apps:
+. Run the following command:
 +
 ----
 $ spring cloud kafka configserver eureka hystrixdashboard
 ----
-
-== Changing Log Levels at Runtime
-
-Have you ever been troubleshooting an issue that would no longer manifest after restarting the application, but you also wanted to change the log level?
-We now have a solution to that problem!
-
-Let's start out by adding some `DEBUG` level logs to our microservices.
-
-. Begin by adding a `Logger` to `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController`:
 +
-----
-Logger logger = LoggerFactory.getLogger(FortuneController.class);
-----
-
-. Next, add a `DEBUG` log statement to `FortuneController.randomFortune`:
+This command will helpfully start up the following components for us:
 +
-----
-logger.debug("Handling request to /random!");
-----
+- https://kafka.apache.org/[Apache Kafka]
+- https://cloud.spring.io/spring-cloud-config/[Spring Cloud Config Server]
+- https://github.com/Netflix/eureka/wiki[Netflix OSS Eureka]
+- https://github.com/Netflix/Hystrix/wiki/Dashboard[Netflix OSS Hystrix Dashboard]
+- http://zipkin.io/[Zipkin]
 
-. Now add a `Logger` to `io.spring.cloud.samples.fortuneteller.ui.UiController`:
 +
-----
-Logger logger = LoggerFactory.getLogger(UiController.class);
-----
+We'll use all of these components to help us compose and operate our Fortune Teller application.
 
-. Then, add a `DEBUG` log statement to:
-`UiController.randomFortune`:
-+
-----
-logger.debug("Handling request to /random!");
-----
+== Config Server
 
-. We also need to add the Spring Cloud Bus dependencies to our microservices. Add the following to `pom.xml` for both `fortune-teller-fortune-service` and `fortune-teller-ui`:
-+
-----
-<dependency>
-  <groupId>org.springframework.cloud</groupId>
-  <artifactId>spring-cloud-starter-bus-kafka</artifactId>
-</dependency>
-----
+. Browse the file https://github.com/dflick-pivotal/configrepo/blob/master/application.yml. This file contains a fallback message for our fortune service.
 
-. Build and start both the Fortune Service and the Fortune UI.
-
-. Access http://localhost:8080 in the browser. You should *not* see your newly added log messages in either applications' consoles.
-
-. Now it's time to change the log level at runtime. In your locally cloned fork of the config repo, edit the file `application.yml`. Change line 6 such that the logging section now appears as follows:
-+
-----
-logging:
-  level:
-    io:
-      spring:
-        cloud:
-          samples: DEBUG
-----
-
-. Commit your change:
-+
-----
-$ git commit -am "change logging level to DEBUG"
-
-----
-
-. Push your change:
-+
-----
-$ git push origin master
-----
-
-. Check if Config Server already got the new config from the repo:
-+
-image::Common/images/config.png[]
-
-. Curl the refresh endpoint of one of your apps to refresh the config in both of your apps via cloud bus
-----
-curl -X POST http://localhost:8080/actuator/bus-refresh
-----
-. Access http://localhost:8080 in the browser. You *should* see your newly added log messages in both applications' consoles (e.g.):
-+
-----
-2019-02-19 12:06:09.408 DEBUG 5217 --- [nio-8081-exec-9] i.s.c.s.f.f.c.FortuneController          : Handling request to /random!
-----
-
-. Leave both fortune applications running for the next set of exercises!
-
-== Hystrix Dashboard
-
-You should already have the Hystrix Dashboard running based on the `spring cloud` command that you ran during the *Cloud Bus* exercise.
-
-. Visit http://localhost:7979.
+. Browse to http://localhost:8888/application/default.
 You should see output similar to the following:
 +
-image::Common/images/hystrix_dashboard_1.png[]
-
-. Paste http://localhost:8080/actuator/hystrix.stream into the text field and click *Monitor Stream*.
-You should see output similar to the following:
+----
+{
+  "name": "application",
+  "profiles": [
+    "default"
+  ],
+  "label": null,
+  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
+  "state": null,
+  "propertySources": [
+    {
+      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
+      "source": {
+        "fortune.fallbackFortune": "Your future is bright!"
+      }
+    }
+  ]
+}
+----
 +
-image::Common/images/hystrix_dashboard_2.png[]
+Note that the response JSON defines a Spring `PropertySource` that contains configuration consistent with what you saw in the Git repository.
 
-. In a browser, access the fortune-teller-ui application at http://localhost:8080 and show that the circuit breaker is registering successful requests.
+== Eureka Server
 
-. Stop the fortune-teller-fortune-service application.
-
-. Access the fortune-teller-ui application at http://localhost:8080, see that the ``fallback fortune'' is being returned, and show that the circuit breaker is registering short-circuited requests.
+. Browse to http://localhost:8761.
+You should see a UI similar to the following:
 +
-image::Common/images/fortunes_4.png[]
-+
-image::Common/images/fortunes_5.png[]
+image::Common/images/eureka_1.png[]
 
-. Restart the fortune-teller-fortune-service application.
+== Fortune Service
 
-. Continue to access the fortune-teller-ui and watch the dashboard.
-After the fortune-teller-fortune-service has re-registered with Eureka and the fortune-teller-ui load balancer caches are refreshed, you will see the circuit breaker recover.
-You should then start getting random fortunes again!
+Now that our Spring Cloud/Netflix OSS infrastructure is bootstrapped, we'll begin development of our first microservice.
+The Fortune Service will serve up a list of all fortune cookie fortunes present in its database or a single random fortune.
 
-== Swapping Out Fallback Behavior with Cloud Bus
-
-The Spring Cloud Bus is not only useful for swapping out log levels. Let's use it to swap out a developer defined property instead.
-
-. Take a look at `io.spring.cloud.samples.fortuneteller.ui.FortuneProperties`:
+. Create a JPA domain class, `io.spring.cloud.samples.fortuneteller.fortuneservice.Fortune`.
+Into that class, paste the following code:
 +
 ----
-@ConfigurationProperties(prefix = "fortune") // <1>
-@RefreshScope // <2>
+@Entity
+@Table(name = "fortunes")
+public class Fortune {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    @Column(nullable = false)
+    private String text;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+}
+----
++
+Add the appropriate imports using the IDE's quick fix feature.
++
+This class represents the domain model for a fortune, having an unique identifier and the fortune's text.
+
+. Create a Spring Data JPA repository interface, `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneRepository`.
+Into that class, paste the following code:
++
+----
+public interface FortuneRepository extends PagingAndSortingRepository<Fortune, Long> {
+
+    @Query("select fortune from Fortune fortune order by RAND()")
+    public List<Fortune> randomFortunes(Pageable pageable);
+}
+----
++
+Add the appropriate imports using the IDE's quick fix feature.
++
+This interface will provide all of the basic boilerplate CRUD features we'll want for our `Fortune` domain class.
+The `@Query` annotation defines a SQL statement that will return a random ordering of the fortunes.
+We'll use this as the basis of returning a random fortune via our REST interface.
+
+. Create a Spring MVC Controller class, `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController`.
+Into that class, paste the following code:
++
+----
+@RestController
+public class FortuneController {
+
+    @Autowired
+    FortuneRepository repository;
+
+    @RequestMapping("/fortunes")
+    public Iterable<Fortune> fortunes() {
+        return repository.findAll();
+    }
+
+    @RequestMapping("/random")
+    public Fortune randomFortune() {
+        List<Fortune> randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
+        return randomFortunes.get(0);
+    }
+}
+----
++
+Add the appropriate imports using the IDE's quick fix feature.
++
+This class provides the two REST endpoints of our microservice.
+The `randomFortune` method provides a `PageRequest` to limit the returned results to one.
+
+. Add `@EnableDiscoveryClient` (to switch on Eureka registration) annotations to `io.spring.cloud.samples.fortuneteller.fortuneservice.Application`.
+
+. Paste the following configuration properties into the file `src/main/resources/bootstrap.yml`:
++
+----
+spring:
+  application:
+    name: fortunes
+----
++
+This configuration specifies the name of the application, which will be used to register the service in Eureka.
+
+. Paste the following configuration properties into the file `src/main/resources/application.yml`:
++
+----
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+ribbon:
+  IsSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+server:
+  port: 8081
+----
++
+This configuration specifies the model to DDL setting to be used by Hibernate.
+
+. Build the application:
++
+----
+$ ../mvnw package
+----
+
+. Run the application:
++
+----
+$ java -jar fortune-teller-fortune-service/target/fortune-teller-fortune-service-0.0.1-SNAPSHOT.jar
+----
+
+. After the service has been running for ten seconds, refresh your Eureka browser tab.
+You should see a registration entry for the fortune service.
+
+. Visit http://localhost:8081/random. You should see output similar to the following:
++
+image::Common/images/fortune_service_output.png[]
+
+== Fortune UI
+
+Now that our Fortune microservice is running, we'll begin development of our second microservice.
+The Fortune UI will serve up a AngularJS single page application that consumes the fortune service.
+
+. Create the POJO `io.spring.cloud.samples.fortuneteller.ui.Fortune`.
+Into that class, paste the following code:
++
+----
+public class Fortune {
+    private Long id;
+    private String text;
+
+    public Fortune() {
+    }
+
+    public Fortune(Long id, String text) {
+        this.id = id;
+        this.text = text;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+}
+----
++
+We will use this class to unmarshal the response from the fortune service.
+
+. Create the Spring Bean `io.spring.cloud.samples.fortuneteller.ui.FortuneProperties`. Into that class, paste the following code:
++
+----
+@ConfigurationProperties(prefix = "fortune")
+@RefreshScope
 public class FortuneProperties {
 
-    private String fallbackFortune = "Your future is unclear."; // <3>
+	private String fallbackFortune = "Your future is unclear.";
 
-    public String getFallbackFortune() {
-        return fallbackFortune;
+	public String getFallbackFortune() {
+		return fallbackFortune;
+	}
+
+	public void setFallbackFortune(String fallbackFortune) {
+		this.fallbackFortune = fallbackFortune;
+	}
+
+}
+----
+
+. Create the Spring Bean `io.spring.cloud.samples.fortuneteller.ui.FortuneService`.
+Into that class, paste the following code:
++
+----
+@Service
+@EnableConfigurationProperties(FortuneProperties.class)
+public class FortuneService {
+
+    @Autowired
+    FortuneProperties fortuneProperties;
+
+    @Autowired
+    @LoadBalanced
+    RestTemplate restTemplate;
+
+    @HystrixCommand(fallbackMethod = "fallbackFortune")
+    public Fortune randomFortune() {
+        return restTemplate.getForObject("http://fortunes/random", Fortune.class);
     }
 
-    public void setFallbackFortune(String fallbackFortune) {
-        this.fallbackFortune = fallbackFortune;
+    private Fortune fallbackFortune() {
+        return new Fortune(42L, fortuneProperties.getFallbackFortune());
     }
-
 }
 ----
-<1> `FortuneProperties` is annotated as a `@ConfigurationProperties` object. These objects provide a type-safe mechanism for handling configuration. Learn more from the following  http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-typesafe-configuration-properties[documentation].
-<2> `FortuneProperties` is also scoped as `@RefreshScope`. This will cause it to be reinitialized based on configuration changes. Learn more from the following http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_refresh_scope[documentation].
-<3> `fallbackFortune` has a default value that is equivalent to what we have in our config repo. Config Server configuration overrides any local configuration by default, so this value is not actually causing the runtime behavior of our app at this time.
-
-. Stop the `fortune-teller-fortune-service` application.
-
-. Access the fortune-teller-ui application at http://localhost:8080, see that the ``fallback fortune'' is being returned.
 +
-image::Common/images/fortunes_4.png[]
-
-. In your local clone of the config repo fork, edit line 9 such that the `fortune` section looks like the following:
+Add the appropriate imports using the IDE's quick fix feature.
 +
-----
-fortune:
-  fallbackFortune: Today is your lucky day!
-----
+This class is our integration point with the fortune service.
+It uses a special `RestTemplate` bean that integrates with Ribbon from Netflix OSS.
+The argument passed to `getForObject`, `http://fortunes/random`, will be resolved by Ribbon to the actual address of the fortune service.
+This method is also protected by a Hystrix circuit breaker using the `@HystrixCommand` annotation.
+If the circuit is tripped to open (due to an unhealthy fortune service), the `fallbackFortune` method will return a dummy response.
 
-. Save, commit, and push your changes to GitHub.
-
-. Refreshed the app config via:
-----
-http://localhost:8080/actuator/bus-refresh endpoint you should see the new fallback.
-----
-
-. Access the fortune-teller-ui application at http://localhost:8080, see that the new ``fallback fortune'' is being returned.
-+
-image::Common/images/lucky_day.png[]
-
-== Correlated Logs with Spring Cloud Sleuth
-
-Now we're going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.
-
-To look at the latency involved in a call graph, we're interested in four events:
-
-- *Client Send (CS):* the client sends a call to the remote service
-- *Server Receive (SR):* the call is received by the remote service and work begins
-- *Server Send (SS):* the server has completed work and responds to the client
-- *Client Receive (CR):* the client receives the response from the remote service
-
-Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.
-
-. Add the following dependency to the `pom.xml` of both `fortune-teller-fortune-service` and `fortune-teller-ui`:
+. Create a Spring MVC Controller class, `io.spring.cloud.samples.fortuneteller.ui.UiController`.
+Into that class, paste the following code:
 +
 ----
-<dependency>
-  <groupId>org.springframework.cloud</groupId>
-  <artifactId>spring-cloud-starter-zipkin</artifactId>
-</dependency>
-----
-+
-This dependency is for Zipkin, but it adds the Sleuth dependencies transitively, and we'll need Zipkin for the next exercise.
+@RestController
+public class UiController {
 
-. Let's add some logs representing our events of interest. In `fortune-teller-ui`, add a `Logger` to `io.spring.cloud.samples.fortuneteller.ui.FortuneService`:
-+
-----
-Logger logger = LoggerFactory.getLogger(FortuneService.class);
-----
+    @Autowired
+    FortuneService service;
 
-. Edit the definition of `FortuneService.randomFortune` to include logs for client send and client receive events:
+    @RequestMapping("/random")
+    public Fortune randomFortune() {
+        return service.randomFortune();
+    }
+}
+----
++
+Add the appropriate imports using the IDE's quick fix feature.
++
+This class provides the REST endpoint that will be consumed by our AngularJS UI.
+
+. Add `@EnableCircuitBreaker` (to switch on Hystrix circuit breakers) and `@EnableDiscoveryClient` (to switch on Eureka registration) annotations to `io.spring.cloud.samples.fortuneteller.ui.Application`.
+
+. Also add the following code to `io.spring.cloud.samples.fortuneteller.ui.Application` to instruct Spring Cloud Netflix to create a load-balanced `RestTemplate`:
 +
 ----
-@HystrixCommand(fallbackMethod = "fallbackFortune")
-public Fortune randomFortune() {
-  logger.info("CS: calling http://fortunes/random.");
-  Fortune fortune = restTemplate.getForObject("http://fortunes/random", Fortune.class);
-  logger.info("CR: received response from http://fortunes/random.");
-  return fortune;
+@Bean
+@LoadBalanced
+public RestTemplate restTemplate() {
+  return new RestTemplate();
 }
 ----
 
-. In `fortune-teller-fortune-service`, edit the definition of `io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController.randomFortune` to include logs for server receive and server send events:
+. Paste the following configuration properties into the file `src/main/resources/bootstrap.yml`:
 +
 ----
-@RequestMapping("/random")
-public Fortune randomFortune() {
-  logger.debug("Handling request to /random!");
-  logger.info("SR: received call to /random.");
-  List<Fortune> randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
-  logger.info("SS: responding to call to /random.");
-  return randomFortunes.get(0);
-}
+spring:
+  application:
+    name: ui
+----
++
+This configuration specifies the name of the application, which will be used to register the service in Eureka.
+
+. Paste the following configuration properties into the file `src/main/resources/application.yml`:
++
+----
+ribbon:
+  isSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+----
++
+
+. Build the application:
++
+----
+$ ./mvnw package
 ----
 
-. Rebuild and restart both applications.
+. Run the application:
++
+----
+$ java -jar fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
+----
 
-. Access http://localhost:8080 in the browser. You should see the correlated log events in each applications' logs:
+. After the service has been running for ten seconds, refresh your Eureka browser tab.
+You should see a registration entry for the Fortune UI.
+
+. Visit http://localhost:8080. You should see output similar to the following:
 +
-.fortune-teller-ui
-----
-2016-10-16 14:06:31.625  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CS: calling http://fortunes/random.
-2016-10-16 14:06:31.631  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CR: received response from http://fortunes/random.
-----
-+
-.fortune-teller-fortune-service
-----
-2016-10-16 14:06:31.628  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SR: received call to /random.
-2016-10-16 14:06:31.629  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SS: responding to call to /random.
-----
-+
-Pay attention to the section of the log statement that appears in square brackets immediately after the log level:
-+
-----
-[fortunes,d64d19d2235e760,6b492a088a2ea3f2,false]
-----
-+
-The tokens represent the following:
-+
-1. The application name (`fortunes`)
-2. The trace ID (`d64d19d2235e760`)
-3. The span ID (`6b492a088a2ea3f2`)
-4. Should this trace be exported to Zipkin (`false`)
-+
-To learn more about this terminology, see this http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2[section] of the Spring Cloud Sleuth documentation.
+image::Common/images/fortunes-ui.png[width=50%]
