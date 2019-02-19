@@ -13,19 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package io.spring.cloud.samples.fortuneteller.fortuneservice;
+package io.spring.cloud.samples.fortuneteller.ui.services.fortunes;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+public class Fortune {
+	private Long id;
+	private String text;
 
-@SpringBootApplication
-@EnableJpaRepositories
-@EnableDiscoveryClient
-public class Application {
+	public Fortune() {
+	}
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+	public Fortune(Long id, String text) {
+		this.id = id;
+		this.text = text;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
+	}
 }

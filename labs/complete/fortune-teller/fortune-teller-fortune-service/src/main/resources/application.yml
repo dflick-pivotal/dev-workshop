@@ -1,8 +1,20 @@
+
 spring:
+  cloud:
+   stream:
+      default-binder: kafka
   jpa:
     hibernate:
       ddl-auto: create-drop
 
-security:
-  basic:
-    enabled: false
+ribbon:
+  IsSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+        
+server:
+  port: 8081

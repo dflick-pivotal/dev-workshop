@@ -13,19 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package io.spring.cloud.samples.fortuneteller.fortuneservice;
+ package io.spring.cloud.samples.fortuneteller.fortuneservice.respositories;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import io.spring.cloud.samples.fortuneteller.fortuneservice.domain.Fortune;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.PagingAndSortingRepository;
 
-@SpringBootApplication
-@EnableJpaRepositories
-@EnableDiscoveryClient
-public class Application {
+import java.util.List;
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+public interface FortuneRepository extends PagingAndSortingRepository<Fortune, Long> {
+
+    @Query("select fortune from Fortune fortune order by RAND()")
+    public List<Fortune> randomFortunes(Pageable pageable);
 }

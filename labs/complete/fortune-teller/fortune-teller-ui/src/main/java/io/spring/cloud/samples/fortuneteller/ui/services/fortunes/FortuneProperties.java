@@ -13,19 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- package io.spring.cloud.samples.fortuneteller.fortuneservice;
+ package io.spring.cloud.samples.fortuneteller.ui.services.fortunes;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 
-@SpringBootApplication
-@EnableJpaRepositories
-@EnableDiscoveryClient
-public class Application {
+@ConfigurationProperties(prefix = "fortune")
+@RefreshScope
+public class FortuneProperties {
 
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
+	private String fallbackFortune = "Your future is unclear.";
+
+	public String getFallbackFortune() {
+		return fallbackFortune;
+	}
+
+	public void setFallbackFortune(String fallbackFortune) {
+		this.fallbackFortune = fallbackFortune;
+	}
+
 }
