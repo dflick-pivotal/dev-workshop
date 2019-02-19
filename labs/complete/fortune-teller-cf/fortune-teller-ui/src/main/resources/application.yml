@@ -1,14 +1,8 @@
-server:
-  port: 8081
+ribbon:
+  isSecure: false
 
-eureka:
-  client:
-    registryFetchIntervalSeconds: 5
-
-fortunes:
-  ribbon:
-    ServerListRefreshInterval: 5000
-
-security:
-  basic:
-    enabled: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

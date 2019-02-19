@@ -44,7 +44,7 @@ $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 . Try out the following endpoints. The output is omitted here because it can be quite large:
 +
 http://localhost:8080/actuator/beans:: Dumps all of the beans in the Spring context.
-http://localhost:8080/actuator/autoconfig:: Dumps all of the auto-configuration performed as part of application bootstrapping.
+http://localhost:8080/actuator/conditions:: Shows the conditions that were evaluated on configuration and auto-configuration classes and the reasons why they did or did not match.
 http://localhost:8080/actuator/configprops:: Displays a collated list of all `@ConfigurationProperties`.
 http://localhost:8080/actuator/env:: Dumps the application's shell environment as well as all Java system properties.
 http://localhost:8080/actuator/mappings:: Dumps all URI request mappings and the controller methods to which they are mapped.
@@ -55,7 +55,7 @@ http://localhost:8080/actuator/trace:: Displays trace information (by default th
 
 == Build and Version Control Info
 
-Spring Boot provides an endpoint (http://localhost:8080/info) that allows the exposure of arbitrary metadata.
+Spring Boot provides an endpoint (http://localhost:8080/actuator/info) that allows the exposure of arbitrary metadata.
 
 One thing that it does well is expose information about the specific build and version control coordinates for a given deployment.
 
@@ -99,7 +99,7 @@ $ ./mvnw package
 $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 ----
 
-. Visit the application in the browser (http://localhost:8080/info), and verify that the output is similar to the following:
+. Visit the application in the browser (http://localhost:8080/actuator/info), and verify that the output is similar to the following:
 +
 ----
 {
@@ -123,7 +123,7 @@ $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 
 == Health Indicators
 
-Spring Boot provides an endpoint (http://localhost:8080/health) that allows for the notion of various health indicators.
+Spring Boot provides an endpoint (http://localhost:8080/actuator/health) that allows for the notion of various health indicators.
 
 . Create the class `io.pivotal.spring.hellospringboot.FlappingHealthIndicator` and into it paste the following code:
 +
@@ -147,6 +147,15 @@ public class FlappingHealthIndicator implements HealthIndicator{
 +
 This demo health indicator will randomize the health check.
 
+. In order to see all details from the health endpoint add the following to your application.yml:
++
+----
+management:
+  endpoint:
+    health:
+      show-details: always
+----
++
 . Build the application:
 +
 ----
@@ -159,20 +168,27 @@ $ ./mvnw package
 $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 ----
 
-. Visit the application in the browser (http://localhost:8080/health), and verify that the output is similar to the following (and changes randomly!):
+. Visit the application in the browser (http://localhost:8080/actuator/health), and verify that the output is similar to the following (and changes randomly!):
 +
 ----
 {
-  status: "UP",
-  flapping: {
-    status: "UP",
-    flapper: "ok",
-    random: 69
-  },
-  diskSpace: {
-    status: "UP",
-    free: 113632186368,
-    threshold: 10485760
+  "status": "DOWN",
+  "details": {
+    "flapping": {
+      "status": "DOWN",
+      "details": {
+        "flapper": "failure",
+        "random": 7
+      }
+    },
+    "diskSpace": {
+      "status": "UP",
+      "details": {
+        "total": 499963174912,
+        "free": 220829589504,
+        "threshold": 10485760
+      }
+    }
   }
 }
 ----
@@ -181,7 +197,7 @@ $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 
 == Metrics
 
-Spring Boot provides an endpoint (http://localhost:8080/metrics) that exposes several automatically collected metrics for your application.
+Spring Boot provides an endpoint (http://localhost:8080/actuator/metrics) that exposes several automatically collected metrics for your application.
 It also allows for the creation of custom metrics.
 
 . Create the class `io.pivotal.spring.hellospringboot.GreetingService` and into it paste the following code:
@@ -190,34 +206,40 @@ It also allows for the creation of custom metrics.
 @Component
 public class GreetingService {
 
-    @Autowired
-    CounterService counterService;
-
     @Value("${greeting}")
     String greeting;
 
+    private final Counter counter;
+
+	public GreetingService(MeterRegistry registry) {
+		this.counter = registry.counter("my.counter");
+	}
+
     public String getGreeting() {
-        counterService.increment("counter.services.greeting.invoked");
+		this.counter.increment();
         return greeting;
     }
 }
 ----
 +
-This class is using the `@Autowired` `CounterService` to count the number of times that the `getGreeting()` method has been invoked.
+This class injects the MeterRegistry in your component and registers a counter metric.
 
 . Refactor the contents of the class `io.pivotal.spring.hellospringboot.HelloSpringBootApplication`:
 +
 ----
+@Value("${greeting}")
+String greeting;
+
 @Autowired
 private GreetingService greetingService;
 
 @RequestMapping("/")
 public String hello() {
-    return String.format("%s World!", greetingService.getGreeting());
+		return String.format("%s World!", greetingService.getGreeting());
 }
 
 public static void main(String[] args) {
-    SpringApplication.run(HelloSpringBootApplication.class, args);
+	SpringApplication.run(HelloSpringBootApplication.class, args);
 }
 ----
 +
@@ -237,13 +259,28 @@ $ java -jar target/hello-spring-boot-0.0.1-SNAPSHOT.jar
 
 . Visit the application in the browser (http://localhost:8080) and refresh the page several times.
 
-. Now visit the `/metrics` endpoint (http://localhost:8080/metrics).
-Among the autogenerated metrics you should see a `counter` for the `GreetingService` invocations:
+. Now visit the `/metrics` endpoint (http://localhost:8080/actuator/metrics).
+Among the autogenerated metrics you should see `my.counter` for the `GreetingService` invocations.
+
+. Now visit http://localhost:8080/actuator/metrics/my.counter to see the current value
 +
 ----
-counter.services.greeting.invoked: 16,
+{
+  "name": "my.counter",
+  "description": null,
+  "baseUnit": null,
+  "measurements": [
+    {
+      "statistic": "COUNT",
+      "value": 4.0
+    }
+  ],
+  "availableTags": [
+
+  ]
+}
 ----
 
 . Stop the application (e.g. via CTRL-C).
 
-. To learn more about the autogenerated metrics, visit http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html.
+. To learn more about the metrics, visit http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html.

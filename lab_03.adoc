@@ -19,7 +19,7 @@ We'll leverage libraries and services from Spring Cloud and Netflix OSS to help 
 . Run the following command:
 +
 ----
-$ spring cloud kafka configserver eureka hystrixdashboard zipkin
+$ spring cloud kafka configserver eureka hystrixdashboard
 ----
 +
 This command will helpfully start up the following components for us:
@@ -35,14 +35,32 @@ We'll use all of these components to help us compose and operate our Fortune Tel
 
 == Config Server
 
-. Browse the file https://github.com/mstine/config-repo/blob/master/application.yml. This file contains logging configuration, Eureka configuration, and a fallback message for our fortune service.
+. Browse the file https://github.com/dflick-pivotal/configrepo/blob/master/application.yml. This file contains a fallback message for our fortune service.
 
 . Browse to http://localhost:8888/application/default.
 You should see output similar to the following:
 +
-image::Common/images/config_server_output.png[width=50%]
+----
+{
+  "name": "application",
+  "profiles": [
+    "default"
+  ],
+  "label": null,
+  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
+  "state": null,
+  "propertySources": [
+    {
+      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
+      "source": {
+        "fortune.fallbackFortune": "Your future is bright!"
+      }
+    }
+  ]
+}
+----
 +
-Note that the response JSON defines a Spring `PropertySource` that contains Eureka configuration consistent with what you saw in the Git repository.
+Note that the response JSON defines a Spring `PropertySource` that contains configuration consistent with what you saw in the Git repository.
 
 == Eureka Server
 
@@ -158,12 +176,17 @@ spring:
     hibernate:
       ddl-auto: create-drop
 
-security:
-  basic:
-    enabled: false
+ribbon:
+  IsSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 ----
 +
-This configuration specifies the model to DDL setting to be used by Hibernate. It also disables basic authentication, which we'll need for Lab 5.
+This configuration specifies the model to DDL setting to be used by Hibernate.
 
 . Build the application:
 +
@@ -180,7 +203,7 @@ $ java -jar fortune-teller-fortune-service/target/fortune-teller-fortune-service
 . After the service has been running for ten seconds, refresh your Eureka browser tab.
 You should see a registration entry for the fortune service.
 
-. Visit http://localhost:8080/random. You should see output similar to the following:
+. Visit http://localhost:8081/random. You should see output similar to the following:
 +
 image::Common/images/fortune_service_output.png[]
 
@@ -325,25 +348,16 @@ This configuration specifies the name of the application, which will be used to 
 . Paste the following configuration properties into the file `src/main/resources/application.yml`:
 +
 ----
-server:
-  port: 8081
+ribbon:
+  isSecure: false
 
-eureka:
-  client:
-    registryFetchIntervalSeconds: 5
-
-fortunes:
-  ribbon:
-    ServerListRefreshInterval: 5000
-
-security:
-  basic:
-    enabled: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 ----
 +
-This configuration instructs the application to listen on port 8081.
-It also provides low cache refresh settings for the Eureka client and Ribbon to make the demo more responsive.
-Finally, it also disables basic authentication, which we'll need for Lab 5.
 
 . Build the application:
 +
@@ -360,6 +374,6 @@ $ java -jar fortune-teller-ui/target/fortune-teller-ui-0.0.1-SNAPSHOT.jar
 . After the service has been running for ten seconds, refresh your Eureka browser tab.
 You should see a registration entry for the Fortune UI.
 
-. Visit http://localhost:8081. You should see output similar to the following:
+. Visit http://localhost:8080. You should see output similar to the following:
 +
 image::Common/images/fortunes-ui.png[width=50%]

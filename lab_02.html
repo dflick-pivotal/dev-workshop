@@ -466,12 +466,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="listingblock">
 <div class="content">
 <pre>management:
-  security:
-    enabled: false</pre>
+  endpoints:
+    web:
+      exposure:
+        include: "*"</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>By default, Actuator insists these endpoints to be secured. Since this is only a learning environment, we&#8217;ll turn off this expectation.</p>
+<p>"*" can be used to select all endpoints. For example, to expose everything over HTTP.</p>
 </div>
 </li>
 </ol>
@@ -503,31 +505,31 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>Try out the following endpoints. The output is omitted here because it can be quite large:</p>
 <div class="dlist">
 <dl>
-<dt class="hdlist1"><a href="http://localhost:8080/beans" class="bare">http://localhost:8080/beans</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/beans" class="bare">http://localhost:8080/actuator/beans</a></dt>
 <dd>
 <p>Dumps all of the beans in the Spring context.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/autoconfig" class="bare">http://localhost:8080/autoconfig</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/conditions" class="bare">http://localhost:8080/actuator/conditions</a></dt>
 <dd>
-<p>Dumps all of the auto-configuration performed as part of application bootstrapping.</p>
+<p>Shows the conditions that were evaluated on configuration and auto-configuration classes and the reasons why they did or did not match.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/configprops" class="bare">http://localhost:8080/configprops</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/configprops" class="bare">http://localhost:8080/actuator/configprops</a></dt>
 <dd>
 <p>Displays a collated list of all <code>@ConfigurationProperties</code>.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/env" class="bare">http://localhost:8080/env</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/env" class="bare">http://localhost:8080/actuator/env</a></dt>
 <dd>
 <p>Dumps the application&#8217;s shell environment as well as all Java system properties.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/mappings" class="bare">http://localhost:8080/mappings</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/mappings" class="bare">http://localhost:8080/actuator/mappings</a></dt>
 <dd>
 <p>Dumps all URI request mappings and the controller methods to which they are mapped.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/dump" class="bare">http://localhost:8080/dump</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/dump" class="bare">http://localhost:8080/actuator/dump</a></dt>
 <dd>
 <p>Performs a thread dump.</p>
 </dd>
-<dt class="hdlist1"><a href="http://localhost:8080/trace" class="bare">http://localhost:8080/trace</a></dt>
+<dt class="hdlist1"><a href="http://localhost:8080/actuator/trace" class="bare">http://localhost:8080/actuator/trace</a></dt>
 <dd>
 <p>Displays trace information (by default the last few HTTP requests).</p>
 </dd>
@@ -545,7 +547,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <h2 id="_build_and_version_control_info">Build and Version Control Info</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/info" class="bare">http://localhost:8080/info</a>) that allows the exposure of arbitrary metadata.</p>
+<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/actuator/info" class="bare">http://localhost:8080/actuator/info</a>) that allows the exposure of arbitrary metadata.</p>
 </div>
 <div class="paragraph">
 <p>One thing that it does well is expose information about the specific build and version control coordinates for a given deployment.</p>
@@ -612,7 +614,7 @@ The path <code>../../../.git</code> refers to the <code>.git</code> directory at
 </div>
 </li>
 <li>
-<p>Visit the application in the browser (<a href="http://localhost:8080/info" class="bare">http://localhost:8080/info</a>), and verify that the output is similar to the following:</p>
+<p>Visit the application in the browser (<a href="http://localhost:8080/actuator/info" class="bare">http://localhost:8080/actuator/info</a>), and verify that the output is similar to the following:</p>
 <div class="listingblock">
 <div class="content">
 <pre>{
@@ -644,7 +646,7 @@ The path <code>../../../.git</code> refers to the <code>.git</code> directory at
 <h2 id="_health_indicators">Health Indicators</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/health" class="bare">http://localhost:8080/health</a>) that allows for the notion of various health indicators.</p>
+<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/actuator/health" class="bare">http://localhost:8080/actuator/health</a>) that allows for the notion of various health indicators.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -674,6 +676,17 @@ public class FlappingHealthIndicator implements HealthIndicator{
 </div>
 </li>
 <li>
+<p>In order to see all details from the health endpoint add the following to your application.yml:</p>
+<div class="listingblock">
+<div class="content">
+<pre>management:
+  endpoint:
+    health:
+      show-details: always</pre>
+</div>
+</div>
+</li>
+<li>
 <p>Build the application:</p>
 <div class="listingblock">
 <div class="content">
@@ -690,20 +703,27 @@ public class FlappingHealthIndicator implements HealthIndicator{
 </div>
 </li>
 <li>
-<p>Visit the application in the browser (<a href="http://localhost:8080/health" class="bare">http://localhost:8080/health</a>), and verify that the output is similar to the following (and changes randomly!):</p>
+<p>Visit the application in the browser (<a href="http://localhost:8080/actuator/health" class="bare">http://localhost:8080/actuator/health</a>), and verify that the output is similar to the following (and changes randomly!):</p>
 <div class="listingblock">
 <div class="content">
 <pre>{
-  status: "UP",
-  flapping: {
-    status: "UP",
-    flapper: "ok",
-    random: 69
-  },
-  diskSpace: {
-    status: "UP",
-    free: 113632186368,
-    threshold: 10485760
+  "status": "DOWN",
+  "details": {
+    "flapping": {
+      "status": "DOWN",
+      "details": {
+        "flapper": "failure",
+        "random": 7
+      }
+    },
+    "diskSpace": {
+      "status": "UP",
+      "details": {
+        "total": 499963174912,
+        "free": 220829589504,
+        "threshold": 10485760
+      }
+    }
   }
 }</pre>
 </div>
@@ -720,7 +740,7 @@ public class FlappingHealthIndicator implements HealthIndicator{
 <h2 id="_metrics">Metrics</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/metrics" class="bare">http://localhost:8080/metrics</a>) that exposes several automatically collected metrics for your application.
+<p>Spring Boot provides an endpoint (<a href="http://localhost:8080/actuator/metrics" class="bare">http://localhost:8080/actuator/metrics</a>) that exposes several automatically collected metrics for your application.
 It also allows for the creation of custom metrics.</p>
 </div>
 <div class="olist arabic">
@@ -732,37 +752,43 @@ It also allows for the creation of custom metrics.</p>
 <pre>@Component
 public class GreetingService {
 
-    @Autowired
-    CounterService counterService;
-
     @Value("${greeting}")
     String greeting;
 
+    private final Counter counter;
+
+	public GreetingService(MeterRegistry registry) {
+		this.counter = registry.counter("my.counter");
+	}
+
     public String getGreeting() {
-        counterService.increment("counter.services.greeting.invoked");
+		this.counter.increment();
         return greeting;
     }
 }</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This class is using the <code>@Autowired</code> <code>CounterService</code> to count the number of times that the <code>getGreeting()</code> method has been invoked.</p>
+<p>This class injects the MeterRegistry in your component and registers a counter metric.</p>
 </div>
 </li>
 <li>
 <p>Refactor the contents of the class <code>io.pivotal.spring.hellospringboot.HelloSpringBootApplication</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre>@Autowired
+<pre>@Value("${greeting}")
+String greeting;
+
+@Autowired
 private GreetingService greetingService;
 
 @RequestMapping("/")
 public String hello() {
-    return String.format("%s World!", greetingService.getGreeting());
+		return String.format("%s World!", greetingService.getGreeting());
 }
 
 public static void main(String[] args) {
-    SpringApplication.run(HelloSpringBootApplication.class, args);
+	SpringApplication.run(HelloSpringBootApplication.class, args);
 }</pre>
 </div>
 </div>
@@ -790,11 +816,27 @@ public static void main(String[] args) {
 <p>Visit the application in the browser (<a href="http://localhost:8080" class="bare">http://localhost:8080</a>) and refresh the page several times.</p>
 </li>
 <li>
-<p>Now visit the <code>/metrics</code> endpoint (<a href="http://localhost:8080/metrics" class="bare">http://localhost:8080/metrics</a>).
-Among the autogenerated metrics you should see a <code>counter</code> for the <code>GreetingService</code> invocations:</p>
+<p>Now visit the <code>/metrics</code> endpoint (<a href="http://localhost:8080/actuator/metrics" class="bare">http://localhost:8080/actuator/metrics</a>).
+Among the autogenerated metrics you should see <code>my.counter</code> for the <code>GreetingService</code> invocations.</p>
+</li>
+<li>
+<p>Now visit <a href="http://localhost:8080/actuator/metrics/my.counter" class="bare">http://localhost:8080/actuator/metrics/my.counter</a> to see the current value</p>
 <div class="listingblock">
 <div class="content">
-<pre>counter.services.greeting.invoked: 16,</pre>
+<pre>{
+  "name": "my.counter",
+  "description": null,
+  "baseUnit": null,
+  "measurements": [
+    {
+      "statistic": "COUNT",
+      "value": 4.0
+    }
+  ],
+  "availableTags": [
+
+  ]
+}</pre>
 </div>
 </div>
 </li>
@@ -802,7 +844,7 @@ Among the autogenerated metrics you should see a <code>counter</code> for the <c
 <p>Stop the application (e.g. via CTRL-C).</p>
 </li>
 <li>
-<p>To learn more about the autogenerated metrics, visit <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html" class="bare">http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html</a>.</p>
+<p>To learn more about the metrics, visit <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html" class="bare">http://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-metrics.html</a>.</p>
 </li>
 </ol>
 </div>
@@ -811,7 +853,7 @@ Among the autogenerated metrics you should see a <code>counter</code> for the <c
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-02-27 12:26:50 +0100
+Last updated 2019-02-08 08:24:15 +0100
 </div>
 </div>
 </body>

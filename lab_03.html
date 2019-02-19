@@ -469,7 +469,7 @@ The resulting application looks like the following screenshot:</p>
 <p>Run the following command:</p>
 <div class="listingblock">
 <div class="content">
-<pre>$ spring cloud kafka configserver eureka hystrixdashboard zipkin</pre>
+<pre>$ spring cloud kafka configserver eureka hystrixdashboard</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -508,18 +508,34 @@ The resulting application looks like the following screenshot:</p>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>Browse the file <a href="https://github.com/mstine/config-repo/blob/master/application.yml" class="bare">https://github.com/mstine/config-repo/blob/master/application.yml</a>. This file contains logging configuration, Eureka configuration, and a fallback message for our fortune service.</p>
+<p>Browse the file <a href="https://github.com/dflick-pivotal/configrepo/blob/master/application.yml" class="bare">https://github.com/dflick-pivotal/configrepo/blob/master/application.yml</a>. This file contains a fallback message for our fortune service.</p>
 </li>
 <li>
 <p>Browse to <a href="http://localhost:8888/application/default" class="bare">http://localhost:8888/application/default</a>.
 You should see output similar to the following:</p>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="Common/images/config_server_output.png" alt="config server output" width="50%">
+<pre>{
+  "name": "application",
+  "profiles": [
+    "default"
+  ],
+  "label": null,
+  "version": "a4491ed1d72ddf23a9bdf5ceefc2ca1b30a4d490",
+  "state": null,
+  "propertySources": [
+    {
+      "name": "https://github.com/dflick-pivotal/configrepo.git/application.yml",
+      "source": {
+        "fortune.fallbackFortune": "Your future is bright!"
+      }
+    }
+  ]
+}</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Note that the response JSON defines a Spring <code>PropertySource</code> that contains Eureka configuration consistent with what you saw in the Git repository.</p>
+<p>Note that the response JSON defines a Spring <code>PropertySource</code> that contains configuration consistent with what you saw in the Git repository.</p>
 </div>
 </li>
 </ol>
@@ -672,13 +688,18 @@ The <code>randomFortune</code> method provides a <code>PageRequest</code> to lim
     hibernate:
       ddl-auto: create-drop
 
-security:
-  basic:
-    enabled: false</pre>
+ribbon:
+  IsSecure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>This configuration specifies the model to DDL setting to be used by Hibernate. It also disables basic authentication, which we&#8217;ll need for Lab 5.</p>
+<p>This configuration specifies the model to DDL setting to be used by Hibernate.</p>
 </div>
 </li>
 <li>
@@ -702,7 +723,7 @@ security:
 You should see a registration entry for the fortune service.</p>
 </li>
 <li>
-<p>Visit <a href="http://localhost:8080/random" class="bare">http://localhost:8080/random</a>. You should see output similar to the following:</p>
+<p>Visit <a href="http://localhost:8081/random" class="bare">http://localhost:8081/random</a>. You should see output similar to the following:</p>
 <div class="imageblock">
 <div class="content">
 <img src="Common/images/fortune_service_output.png" alt="fortune service output">
@@ -878,26 +899,15 @@ public RestTemplate restTemplate() {
 <p>Paste the following configuration properties into the file <code>src/main/resources/application.yml</code>:</p>
 <div class="listingblock">
 <div class="content">
-<pre>server:
-  port: 8081
+<pre>ribbon:
+  isSecure: false
 
-eureka:
-  client:
-    registryFetchIntervalSeconds: 5
-
-fortunes:
-  ribbon:
-    ServerListRefreshInterval: 5000
-
-security:
-  basic:
-    enabled: false</pre>
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"</pre>
 </div>
-</div>
-<div class="paragraph">
-<p>This configuration instructs the application to listen on port 8081.
-It also provides low cache refresh settings for the Eureka client and Ribbon to make the demo more responsive.
-Finally, it also disables basic authentication, which we&#8217;ll need for Lab 5.</p>
 </div>
 </li>
 <li>
@@ -921,7 +931,7 @@ Finally, it also disables basic authentication, which we&#8217;ll need for Lab 5
 You should see a registration entry for the Fortune UI.</p>
 </li>
 <li>
-<p>Visit <a href="http://localhost:8081" class="bare">http://localhost:8081</a>. You should see output similar to the following:</p>
+<p>Visit <a href="http://localhost:8080" class="bare">http://localhost:8080</a>. You should see output similar to the following:</p>
 <div class="imageblock">
 <div class="content">
 <img src="Common/images/fortunes-ui.png" alt="fortunes ui" width="50%">
@@ -935,7 +945,7 @@ You should see a registration entry for the Fortune UI.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-02-27 12:26:50 +0100
+Last updated 2019-02-19 13:23:53 +0100
 </div>
 </div>
 </body>

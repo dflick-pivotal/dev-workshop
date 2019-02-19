@@ -1,6 +1,9 @@
 greeting: Hello
 
 management:
+  endpoint:
+    health:
+      show-details: always
   endpoints:
     web:
       exposure:
