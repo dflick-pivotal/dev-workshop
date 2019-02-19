@@ -184,6 +184,9 @@ management:
     web:
       exposure:
         include: "*"
+
+server:
+  port: 8081
 ----
 +
 This configuration specifies the model to DDL setting to be used by Hibernate.
