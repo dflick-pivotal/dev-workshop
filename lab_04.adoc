@@ -28,7 +28,6 @@ This command will helpfully start up the following components for us:
 - https://cloud.spring.io/spring-cloud-config/[Spring Cloud Config Server]
 - https://github.com/Netflix/eureka/wiki[Netflix OSS Eureka]
 - https://github.com/Netflix/Hystrix/wiki/Dashboard[Netflix OSS Hystrix Dashboard]
-- http://zipkin.io/[Zipkin]
 
 +
 We'll use all of these components to help us compose and operate our Fortune Teller application.
