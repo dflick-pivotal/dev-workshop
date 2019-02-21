@@ -452,9 +452,6 @@ We&#8217;ll work with the following:</p>
 <li>
 <p><a href="https://github.com/Netflix/Hystrix/wiki/Dashboard">Hystrix Dashboard</a>, which enables us to monitor the status of our application&#8217;s circuit breakers.</p>
 </li>
-<li>
-<p><a href="http://zipkin.io/">Zipkin</a>, which enables us to determine the sources of latency in our microservice call graphs.</p>
-</li>
 </ul>
 </div>
 </div>
@@ -765,7 +762,7 @@ public class FortuneProperties {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>http://localhost:8080/actuator/bus-refresh endpoint you should see the new fallback.</pre>
+<pre>curl -X POST http://localhost:8080/actuator/bus-refresh</pre>
 </div>
 </div>
 <div class="olist arabic">
@@ -782,145 +779,10 @@ public class FortuneProperties {
 </div>
 </div>
 </div>
-<div class="sect1">
-<h2 id="_correlated_logs_with_spring_cloud_sleuth">Correlated Logs with Spring Cloud Sleuth</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>Now we&#8217;re going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.</p>
-</div>
-<div class="paragraph">
-<p>To look at the latency involved in a call graph, we&#8217;re interested in four events:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>Client Send (CS):</strong> the client sends a call to the remote service</p>
-</li>
-<li>
-<p><strong>Server Receive (SR):</strong> the call is received by the remote service and work begins</p>
-</li>
-<li>
-<p><strong>Server Send (SS):</strong> the server has completed work and responds to the client</p>
-</li>
-<li>
-<p><strong>Client Receive (CR):</strong> the client receives the response from the remote service</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p>Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>Add the following dependency to the <code>pom.xml</code> of both <code>fortune-teller-fortune-service</code> and <code>fortune-teller-ui</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>&lt;dependency&gt;
-  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
-  &lt;artifactId&gt;spring-cloud-starter-zipkin&lt;/artifactId&gt;
-&lt;/dependency&gt;</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>This dependency is for Zipkin, but it adds the Sleuth dependencies transitively, and we&#8217;ll need Zipkin for the next exercise.</p>
-</div>
-</li>
-<li>
-<p>Let&#8217;s add some logs representing our events of interest. In <code>fortune-teller-ui</code>, add a <code>Logger</code> to <code>io.spring.cloud.samples.fortuneteller.ui.FortuneService</code>:</p>
-<div class="listingblock">
-<div class="content">
-<pre>Logger logger = LoggerFactory.getLogger(FortuneService.class);</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Edit the definition of <code>FortuneService.randomFortune</code> to include logs for client send and client receive events:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@HystrixCommand(fallbackMethod = "fallbackFortune")
-public Fortune randomFortune() {
-  logger.info("CS: calling http://fortunes/random.");
-  Fortune fortune = restTemplate.getForObject("http://fortunes/random", Fortune.class);
-  logger.info("CR: received response from http://fortunes/random.");
-  return fortune;
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>In <code>fortune-teller-fortune-service</code>, edit the definition of <code>io.spring.cloud.samples.fortuneteller.fortuneservice.FortuneController.randomFortune</code> to include logs for server receive and server send events:</p>
-<div class="listingblock">
-<div class="content">
-<pre>@RequestMapping("/random")
-public Fortune randomFortune() {
-  logger.debug("Handling request to /random!");
-  logger.info("SR: received call to /random.");
-  List&lt;Fortune&gt; randomFortunes = repository.randomFortunes(new PageRequest(0, 1));
-  logger.info("SS: responding to call to /random.");
-  return randomFortunes.get(0);
-}</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Rebuild and restart both applications.</p>
-</li>
-<li>
-<p>Access <a href="http://localhost:8080" class="bare">http://localhost:8080</a> in the browser. You should see the correlated log events in each applications' logs:</p>
-<div class="listingblock">
-<div class="title">fortune-teller-ui</div>
-<div class="content">
-<pre>2016-10-16 14:06:31.625  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CS: calling http://fortunes/random.
-2016-10-16 14:06:31.631  INFO [ui,d64d19d2235e760,1c25e1b87727b7ae,false] 79564 --- [rtuneService-10] i.s.c.s.fortuneteller.ui.FortuneService  : CR: received response from http://fortunes/random.</pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">fortune-teller-fortune-service</div>
-<div class="content">
-<pre>2016-10-16 14:06:31.628  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SR: received call to /random.
-2016-10-16 14:06:31.629  INFO [fortunes,d64d19d2235e760,6b492a088a2ea3f2,false] 79517 --- [nio-8080-exec-7] i.s.c.s.f.f.FortuneController            : SS: responding to call to /random.</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Pay attention to the section of the log statement that appears in square brackets immediately after the log level:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>[fortunes,d64d19d2235e760,6b492a088a2ea3f2,false]</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>The tokens represent the following:</p>
-</div>
-<div class="olist arabic">
-<ol class="arabic">
-<li>
-<p>The application name (<code>fortunes</code>)</p>
-</li>
-<li>
-<p>The trace ID (<code>d64d19d2235e760</code>)</p>
-</li>
-<li>
-<p>The span ID (<code>6b492a088a2ea3f2</code>)</p>
-</li>
-<li>
-<p>Should this trace be exported to Zipkin (<code>false</code>)</p>
-<div class="paragraph">
-<p>To learn more about this terminology, see this <a href="http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2">section</a> of the Spring Cloud Sleuth documentation.</p>
-</div>
-</li>
-</ol>
-</div>
-</li>
-</ol>
-</div>
-</div>
-</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 18:53:16 +0100
+Last updated 2019-02-21 13:46:04 +0100
 </div>
 </div>
 </body>

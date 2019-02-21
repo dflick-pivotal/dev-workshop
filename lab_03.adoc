@@ -10,7 +10,7 @@ _A completed version of this lab is found at `$COURSE_HOME/labs/complete/hello-s
 
 +
 ----
---- <1>
+---  <1>
 applications: <2>
 - name: hello <3>
   random-route: true <4>
@@ -20,10 +20,10 @@ applications: <2>
 ----
 +
 <1> The manifest begins with three dashes.
-<2> The applications block begins with a heading followed by a colon.
-<3> The app name.
-<4> A route mapped to an app is required to be unique on a Cloud Foundry instance. The property ensures a unique route mapped to the app.
-<5> There are plenty other properties available (ex. memory of the container the app lives in). https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html[docs]
+<2> The applications block. You can have multiple apps within a single manifest file.
+<3> The name of an app unique within a single space.
+<4> Generates a cloud foundry instance wide unique route that is mapped to the app.
+<5> Find a description of available properties in the https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html[docs]
 <6> Path to the artifact we want to run on Cloud Foundry
 
 == Push!
@@ -92,17 +92,17 @@ image::Common/images/app_04.png[]
 +
 image::Common/images/app_05.png[]
 +
-PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (crashes, start, stop, ...) and logs are available. Logs are visualized within the same context as metrics and events. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.
+PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (app crashed, start, stop, ...) and logs are available. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.
 
 == CF CLI
 
-Apps Manager and CF cli implement the cloud controller api. There plenty of cf cli commands available to manage your app. We speak about the application dial tone. Meaning:
+Apps Manager and CF cli implement the cloud controller api. The application dial tone:
 
 ----
 cf COMMAND APP_NAME
 ----
 
-Everything you do is within the context of an app. You tell Cloud Foundry what you want to do with an app. If you want to stop, start, scale, stream logs, set env variables, ... by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.
+Everything you do is within the context of an app. You stop, start, scale, stream logs, set env variables, ... by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.
 
 . Stream the app logs to the cf cli
 ----

@@ -460,3 +460,59 @@ $ cf logs fortunes
    2019-02-19T15:53:15.15+0100 [APP/PROC/WEB/0] OUT 2019-02-19 14:53:15.154  INFO 14 --- [nio-8080-exec-6] i.s.c.s.f.f.c.FortuneController          : SS: responding to call to /random.
 ...
 ----
+
+== Correlated Logs with Spring Cloud Sleuth
+
+Now we're going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.
+
+To look at the latency involved in a call graph, we're interested in four events:
+
+- *Client Send (CS):* the client sends a call to the remote service
+- *Server Receive (SR):* the call is received by the remote service and work begins
+- *Server Send (SS):* the server has completed work and responds to the client
+- *Client Receive (CR):* the client receives the response from the remote service
+
+Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.
+
+. Add the following dependency to the `pom.xml` of both `fortune-teller-fortune-service` and `fortune-teller-ui`:
++
+----
+<dependency>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-starter-sleuth</artifactId>
+</dependency>
+----
++
+
+. Rebuild and push both applications.
+
+. Access the ui app via the browser. You should see the correlated log events in each applications' logs:
++
+.fortune-teller-ui
+----
+2019-02-21T14:05:47.71+0100 [APP/PROC/WEB/0] OUT 2019-02-21 13:05:47.717  INFO [ui,f786f3a50f6cfc61,cca54d815397509d,false] 22 --- [ortuneService-2] i.s.c.s.f.u.s.fortunes.FortuneService    : CR: received response from http://fortunes/random.
+----
++
+.fortune-teller-fortune-service
+----
+2019-02-21T14:05:47.70+0100 [APP/PROC/WEB/0] OUT 2019-02-21 13:05:47.701  INFO [fortunes,f786f3a50f6cfc61,f37ed227d3ffff10,false] 14 --- [nio-8080-exec-5] i.s.c.s.f.f.c.FortuneController          : SS: responding to call to /random.
+----
++
+Pay attention to the section of the log statement that appears in square brackets immediately after the log level:
++
+----
+[fortunes,f786f3a50f6cfc61,f37ed227d3ffff10,false]
+----
++
+The tokens represent the following:
++
+1. The application name (`fortunes`)
+2. The trace ID (`f786f3a50f6cfc61`)
+3. The span ID (`f37ed227d3ffff10`)
+4. Should this trace be exported to Zipkin (`false`)
++
+To learn more about this terminology, see this http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2[section] of the Spring Cloud Sleuth documentation.
+
+. But wait, you do not need to correlate the logs and traces on your own. PCF Metrics does the job for your
+
+image::Common/images/trace.png[]

@@ -1019,10 +1019,111 @@ start command:   JAVA_OPTS="-agentpath:$PWD/.java-buildpack/open_jdk_jre/bin/jvm
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_correlated_logs_with_spring_cloud_sleuth">Correlated Logs with Spring Cloud Sleuth</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now we&#8217;re going to look at how to correlate logs across a call graph using Spring Cloud Sleuth, which automatically instruments Spring Cloud applications and adds correlation information to our logs.</p>
+</div>
+<div class="paragraph">
+<p>To look at the latency involved in a call graph, we&#8217;re interested in four events:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Client Send (CS):</strong> the client sends a call to the remote service</p>
+</li>
+<li>
+<p><strong>Server Receive (SR):</strong> the call is received by the remote service and work begins</p>
+</li>
+<li>
+<p><strong>Server Send (SS):</strong> the server has completed work and responds to the client</p>
+</li>
+<li>
+<p><strong>Client Receive (CR):</strong> the client receives the response from the remote service</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Correlating these four events will help us determine how long an operation took and what the potential sources of latency are.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Add the following dependency to the <code>pom.xml</code> of both <code>fortune-teller-fortune-service</code> and <code>fortune-teller-ui</code>:</p>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-cloud-starter-sleuth&lt;/artifactId&gt;
+&lt;/dependency&gt;</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Rebuild and push both applications.</p>
+</li>
+<li>
+<p>Access the ui app via the browser. You should see the correlated log events in each applications' logs:</p>
+<div class="listingblock">
+<div class="title">fortune-teller-ui</div>
+<div class="content">
+<pre>2019-02-21T14:05:47.71+0100 [APP/PROC/WEB/0] OUT 2019-02-21 13:05:47.717  INFO [ui,f786f3a50f6cfc61,cca54d815397509d,false] 22 --- [ortuneService-2] i.s.c.s.f.u.s.fortunes.FortuneService    : CR: received response from http://fortunes/random.</pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">fortune-teller-fortune-service</div>
+<div class="content">
+<pre>2019-02-21T14:05:47.70+0100 [APP/PROC/WEB/0] OUT 2019-02-21 13:05:47.701  INFO [fortunes,f786f3a50f6cfc61,f37ed227d3ffff10,false] 14 --- [nio-8080-exec-5] i.s.c.s.f.f.c.FortuneController          : SS: responding to call to /random.</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Pay attention to the section of the log statement that appears in square brackets immediately after the log level:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>[fortunes,f786f3a50f6cfc61,f37ed227d3ffff10,false]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The tokens represent the following:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The application name (<code>fortunes</code>)</p>
+</li>
+<li>
+<p>The trace ID (<code>f786f3a50f6cfc61</code>)</p>
+</li>
+<li>
+<p>The span ID (<code>f37ed227d3ffff10</code>)</p>
+</li>
+<li>
+<p>Should this trace be exported to Zipkin (<code>false</code>)</p>
+<div class="paragraph">
+<p>To learn more about this terminology, see this <a href="http://cloud.spring.io/spring-cloud-static/spring-cloud.html#_features_2">section</a> of the Spring Cloud Sleuth documentation.</p>
+</div>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>But wait, you do not need to correlate the logs and traces on your own. PCF Metrics does the job for your</p>
+</li>
+</ol>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="Common/images/trace.png" alt="trace">
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 18:53:16 +0100
+Last updated 2019-02-21 14:14:22 +0100
 </div>
 </div>
 </body>

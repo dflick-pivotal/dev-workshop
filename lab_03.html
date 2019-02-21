@@ -454,7 +454,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>Create a <code>manifest.yml</code> file in the project root folder. Manifests provide consistency and reproducibility deploying apps to Cloud Foundry:</p>
 <div class="listingblock">
 <div class="content">
-<pre>--- <b class="conum">(1)</b>
+<pre>---  <b class="conum">(1)</b>
 applications: <b class="conum">(2)</b>
 - name: hello <b class="conum">(3)</b>
   random-route: true <b class="conum">(4)</b>
@@ -469,16 +469,16 @@ applications: <b class="conum">(2)</b>
 <p>The manifest begins with three dashes.</p>
 </li>
 <li>
-<p>The applications block begins with a heading followed by a colon.</p>
+<p>The applications block. You can have multiple apps within a single manifest file.</p>
 </li>
 <li>
-<p>The app name.</p>
+<p>The name of an app unique within a single space.</p>
 </li>
 <li>
-<p>A route mapped to an app is required to be unique on a Cloud Foundry instance. The property ensures a unique route mapped to the app.</p>
+<p>Generates a cloud foundry instance wide unique route that is mapped to the app.</p>
 </li>
 <li>
-<p>There are plenty other properties available (ex. memory of the container the app lives in). <a href="https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html">docs</a></p>
+<p>Find a description of available properties in the <a href="https://docs.pivotal.io/pivotalcf/2-4/devguide/deploy-apps/manifest.html">docs</a></p>
 </li>
 <li>
 <p>Path to the artifact we want to run on Cloud Foundry</p>
@@ -590,7 +590,7 @@ Space:          dflick-dev</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (crashes, start, stop, &#8230;&#8203;) and logs are available. Logs are visualized within the same context as metrics and events. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.</p>
+<p>PCF Metrics is a application monitoring solution. Container metrics, application metrics, events (app crashed, start, stop, &#8230;&#8203;) and logs are available. For example: In the case of app crashes it is easy to navigate to the logs within that timeframe. There is also alerting available.</p>
 </div>
 </li>
 </ol>
@@ -601,7 +601,7 @@ Space:          dflick-dev</pre>
 <h2 id="_cf_cli">CF CLI</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Apps Manager and CF cli implement the cloud controller api. There plenty of cf cli commands available to manage your app. We speak about the application dial tone. Meaning:</p>
+<p>Apps Manager and CF cli implement the cloud controller api. The application dial tone:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -609,7 +609,7 @@ Space:          dflick-dev</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Everything you do is within the context of an app. You tell Cloud Foundry what you want to do with an app. If you want to stop, start, scale, stream logs, set env variables, &#8230;&#8203; by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.</p>
+<p>Everything you do is within the context of an app. You stop, start, scale, stream logs, set env variables, &#8230;&#8203; by providing the APP_NAME with each cf cli command. That is a difference to Kubernetes where you manage the container. In Cloud Foundry you mange apps.</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
@@ -632,7 +632,7 @@ Retrieving logs for app hello in org EMEA / space dflick-dev as dflick@pivotal.i
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 18:46:40 +0100
+Last updated 2019-02-21 12:56:24 +0100
 </div>
 </div>
 </body>
