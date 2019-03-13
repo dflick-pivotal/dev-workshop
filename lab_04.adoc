@@ -16,6 +16,8 @@ We'll leverage libraries and services from Spring Cloud and Netflix OSS to help 
 
 . At the command line, change directories to `$COURSE_HOME/labs/initial/fortune-teller`.
 
+. Make sure you have installed https://www.baeldung.com/spring-boot-cli[Spring Boot CLI].
+
 . Run the following command:
 +
 ----
