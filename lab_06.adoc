@@ -140,7 +140,7 @@ The SCS services are provisioned asynchronously, so you'll need to check on thei
 . Execute the script:
 +
 ----
-$ scripts/create_services.sh
+$ scripts/pws-create-services.sh
 Creating service instance fortunes-db in org EMEA / space dflick-dev as dflick@pivotal.io...
 OK
 
