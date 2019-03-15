@@ -2,7 +2,7 @@
 
 NOTE: More info on Spring Cloud Stream can be found at https://docs.spring.io/spring-cloud-stream/docs/Chelsea.SR2/reference/htmlsingle/index.html
 
-This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.
+This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/htmlsingle/). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.
 
 NOTE: The completed code for this lab can be found at `$COURSE_HOME/labs/complete/stream`.
 
