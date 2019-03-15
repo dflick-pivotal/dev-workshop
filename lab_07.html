@@ -450,7 +450,7 @@ More info on Spring Cloud Stream can be found at <a href="https://docs.spring.io
 </table>
 </div>
 <div class="paragraph">
-<p>This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (<a href="http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/" class="bare">http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/html/</a>). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.</p>
+<p>This lab is to give you an idea about the stream processing capabilities with spring boot / spring cloud stream. Spring Cloud Stream is a crucial piece of Spring cloud Dataflow (<a href="http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/htmlsingle/" class="bare">http://docs.spring.io/spring-cloud-dataflow/docs/current/reference/htmlsingle/</a>). Both projects are to simplify stream processing of for example car data in the cloud with cloud native applications.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -513,7 +513,7 @@ The completed code for this lab can be found at <code>$COURSE_HOME/labs/complete
 <dt class="hdlist1">Language</dt>
 <dd>
 <p>Java
-Spring Boot Version 1.5.7</p>
+Spring Boot Version 1.5.19</p>
 </dd>
 </dl>
 </div>
@@ -523,7 +523,7 @@ Spring Boot Version 1.5.7</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Stream Rabbit, Web</p>
+<p>Cloud Stream, RabbitMQ, Web</p>
 </li>
 </ul>
 </div>
@@ -574,7 +574,7 @@ Unpack that zip file at <code>$COURSE_HOME/labs/initial/stream</code>.</p>
 <dt class="hdlist1">Language</dt>
 <dd>
 <p>Java
-Spring Boot Version 1.5.7</p>
+Spring Boot Version 1.5.19</p>
 </dd>
 </dl>
 </div>
@@ -584,7 +584,7 @@ Spring Boot Version 1.5.7</p>
 <div class="ulist">
 <ul>
 <li>
-<p>Stream Rabbit, Web</p>
+<p>Cloud Stream, RabbitMQ, Web</p>
 </li>
 </ul>
 </div>
@@ -826,9 +826,9 @@ You&#8217;ve just completed your first Spring Cloud Stream sink application.</p>
 <pre>---
 applications:
 - name: sink
-  memory: 512M
+  memory: 1G
   instances: 1
-  host: source-${random-word}
+  random-route: true
   path: target/sensor-sink-spring-cloud-stream-0.0.1-SNAPSHOT.jar
   services: [scs-rabbit]</pre>
 </div>
@@ -841,9 +841,9 @@ applications:
 <pre>---
 applications:
 - name: source
-  memory: 512M
+  memory: 1G
   instances: 1
-  host: source-${random-word}
+  random-route: true
   path: target/sensor-source-spring-cloud-stream-0.0.1-SNAPSHOT.jar
   services: [scs-rabbit]</pre>
 </div>
@@ -929,7 +929,7 @@ buildpack: java-buildpack=v3.8.1-offline-https://github.com/cloudfoundry/java-bu
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2019-02-19 18:53:16 +0100
+Last updated 2019-03-15 10:38:03 +0100
 </div>
 </div>
 </body>
